@@ -418,7 +418,7 @@ function orderRow(order) {
   const street = service.unit ? `${service.line}, Unit ${service.unit}` : service.line;
   const address = [street, service.city, `${region} ${service.zip || ""}`.trim()].filter(Boolean).join(", ");
   const payload = { ...order };
-  ["cardNumber", "cardCvv", "cardExp", "achAccount", "achRouting"].forEach((key) => delete payload[key]);
+  ["cardNumber", "cardCvv", "cardExp", "cardName", "achAccount", "achRouting", "achName"].forEach((key) => delete payload[key]);
   return {
     order_number: order.number,
     source: "visionary-broadband",
@@ -430,8 +430,65 @@ function orderRow(order) {
     package_name: order.package ? order.package.name : null,
     month1: order.pricing ? order.pricing.month1 : null,
     monthly: order.pricing ? order.pricing.monthly : null,
+    payment: order.payment,
     payload,
   };
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary);
+}
+
+let paymentKeyPromise;
+function importPaymentKey() {
+  const config = window.VB_CONFIG || {};
+  if (!config.paymentPublicKey) throw new Error("Payment encryption is not configured.");
+  if (!paymentKeyPromise) {
+    const der = Uint8Array.from(atob(config.paymentPublicKey), (char) => char.charCodeAt(0));
+    paymentKeyPromise = crypto.subtle.importKey(
+      "spki",
+      der,
+      { name: "RSA-OAEP", hash: "SHA-256" },
+      false,
+      ["encrypt"],
+    );
+  }
+  return paymentKeyPromise;
+}
+
+async function encryptPayment() {
+  const secret = state.payMethod === "card"
+    ? { cardName: state.cardName.trim(), cardNumber: digits(state.cardNumber), cardExp: state.cardExp.trim() }
+    : {
+      achName: state.achName.trim(),
+      achRouting: digits(state.achRouting),
+      achAccount: digits(state.achAccount),
+      achType: state.achType,
+    };
+  const plain = new TextEncoder().encode(JSON.stringify(secret));
+  const publicKey = await importPaymentKey();
+  const aesKey = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aesKey, plain));
+  const rawAes = new Uint8Array(await crypto.subtle.exportKey("raw", aesKey));
+  const wrapped = new Uint8Array(await crypto.subtle.encrypt({ name: "RSA-OAEP" }, publicKey, rawAes));
+  return {
+    v: 1,
+    alg: "RSA-OAEP-256+AES-256-GCM",
+    key: bytesToBase64(wrapped),
+    iv: bytesToBase64(iv),
+    data: bytesToBase64(data),
+  };
+}
+
+function wipePaymentSecrets() {
+  state.cardNumber = "";
+  state.cardCvv = "";
+  state.cardExp = "";
+  state.achRouting = "";
+  state.achAccount = "";
 }
 
 async function saveOrderToSupabase(order) {
@@ -955,6 +1012,7 @@ function summaryHTML(order, opts) {
     <div class="pad stack" style="gap:18px">
       <div><div class="k">Payment Method</div><div class="v">${esc(order.payMethod)}</div></div>
       <div><div class="k">Auto-pay</div><div class="v">${esc(order.autopay)}</div></div>
+      ${order.payment ? `<p class="fine">Card and bank numbers are stored encrypted.</p>` : ""}
       <div><div class="k">Billing Address</div><div class="v">${esc(addressLine(order.billing, order.billing.unit))}</div></div>
     </div>
     </section>
@@ -1168,6 +1226,7 @@ async function advance() {
     state.errors.submit = "";
     paint({ keepScroll: true });
     try {
+      order.payment = await encryptPayment();
       await saveOrderToSupabase(order);
     } catch {
       state.saving = false;
@@ -1175,6 +1234,7 @@ async function advance() {
       paint({ keepScroll: true });
       return;
     }
+    wipePaymentSecrets();
     state.saving = false;
     saveOrderRecord(order);
     state.order = order;
