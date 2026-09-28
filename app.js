@@ -174,6 +174,7 @@ function fresh() {
     confirmCancel: false,
     overrideOpen: false,
     lookupToken: 0,
+    saving: false,
   };
 }
 
@@ -403,8 +404,61 @@ function buildOrder() {
     billing: { ...state.billing },
     salesNotes: state.salesNotes.trim(),
     installNotes: state.installNotes.trim(),
+    installDate: state.installDate,
+    installTime: state.installTime,
+    disclosures: { ...state.disclosures },
     pricing: prices,
   };
+}
+
+function orderRow(order) {
+  const contact = (order.contacts && order.contacts[0]) || {};
+  const service = order.service || {};
+  const region = ABBR[service.region] || service.region || "";
+  const street = service.unit ? `${service.line}, Unit ${service.unit}` : service.line;
+  const address = [street, service.city, `${region} ${service.zip || ""}`.trim()].filter(Boolean).join(", ");
+  const payload = { ...order };
+  ["cardNumber", "cardCvv", "cardExp", "achAccount", "achRouting"].forEach((key) => delete payload[key]);
+  return {
+    order_number: order.number,
+    source: "visionary-broadband",
+    account_name: order.accountName,
+    service_address: address,
+    contact_name: contact.name || null,
+    contact_email: contact.email || null,
+    contact_phone: contact.phone || null,
+    package_name: order.package ? order.package.name : null,
+    month1: order.pricing ? order.pricing.month1 : null,
+    monthly: order.pricing ? order.pricing.monthly : null,
+    payload,
+  };
+}
+
+async function saveOrderToSupabase(order) {
+  const config = window.VB_CONFIG || {};
+  if (!config.supabaseUrl || !config.supabaseAnonKey) {
+    throw new Error("Orders are not connected yet.");
+  }
+  const key = config.supabaseAnonKey;
+  const headers = {
+    apikey: key,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Prefer: "return=minimal",
+  };
+  if (!String(key).startsWith("sb_")) headers.Authorization = `Bearer ${key}`;
+  const url = `${config.supabaseUrl.replace(/\/$/, "")}/rest/v1/${config.ordersTable || "broadband_orders"}`;
+  const send = () => fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(orderRow(order)),
+  });
+  let response = await send();
+  if (response.status === 409) {
+    order.number = String(10000 + Math.floor(Math.random() * 90000));
+    response = await send();
+  }
+  if (!response.ok) throw new Error(`Request failed (${response.status})`);
 }
 
 function paint(options = {}) {
@@ -749,7 +803,8 @@ function reviewStep() {
           </button>`).join("")}
       </div>
     </div>
-    ${navButtons(disclosuresReady(), "Submit Order")}
+    ${state.errors.submit ? `<div class="pad"><p class="err">${esc(state.errors.submit)}</p></div>` : ""}
+    ${navButtons(disclosuresReady() && !state.saving, state.saving ? "Saving…" : "Submit Order")}
   `;
 }
 
@@ -1103,12 +1158,24 @@ async function advance() {
     return;
   }
   if (state.step === 5) {
-    if (!disclosuresReady()) return;
+    if (!disclosuresReady() || state.saving) return;
     state.voiceLines.forEach((line) => {
       if (line.porting && !line.portId) line.portId = `#${100 + Math.floor(Math.random() * 900)}`;
     });
     const order = buildOrder();
     order.lines = state.voiceLines.map((line) => ({ ...line }));
+    state.saving = true;
+    state.errors.submit = "";
+    paint({ keepScroll: true });
+    try {
+      await saveOrderToSupabase(order);
+    } catch {
+      state.saving = false;
+      state.errors.submit = "Couldn't save this order. Check your connection and try again.";
+      paint({ keepScroll: true });
+      return;
+    }
+    state.saving = false;
     saveOrderRecord(order);
     state.order = order;
     state.screen = "result";
