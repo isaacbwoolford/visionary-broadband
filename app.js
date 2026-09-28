@@ -547,8 +547,7 @@ function header() {
   return `
     <header class="header">
       <div class="brand">
-        <button class="logo" data-action="home" aria-label="Visionary Broadband">${logoSvg()}</button>
-        <span class="brand-name">Visionary Broadband</span>
+        <button class="logo" data-action="home" aria-label="Visionary Broadband"><img src="logo.png" alt=""></button>
       </div>
       <nav class="desk-nav">
         <button data-action="new-order">New Order</button>
@@ -560,10 +559,6 @@ function header() {
         <button data-action="orders">Orders</button>
       </div>` : ""}
     </header>`;
-}
-
-function logoSvg() {
-  return `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M15 11 L28 20 L15 29 Z" fill="#1a1d21"/></svg>`;
 }
 
 function body() {
