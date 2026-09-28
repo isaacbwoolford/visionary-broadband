@@ -547,7 +547,7 @@ function header() {
   return `
     <header class="header">
       <div class="brand">
-        <button class="logo" data-action="home" aria-label="Visionary Broadband"><img src="logo.png" alt=""></button>
+        <button class="logo" data-action="home" aria-label="Visionary Broadband"><img src="logo.png?v=2" alt=""></button>
       </div>
       <nav class="desk-nav">
         <button data-action="new-order">New Order</button>
