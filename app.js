@@ -435,7 +435,14 @@ function view() {
 function header() {
   return `
     <header class="header">
-      <button class="logo" data-action="home" aria-label="Visionary Broadband">${logoSvg()}</button>
+      <div class="brand">
+        <button class="logo" data-action="home" aria-label="Visionary Broadband">${logoSvg()}</button>
+        <span class="brand-name">Visionary Broadband</span>
+      </div>
+      <nav class="desk-nav">
+        <button data-action="new-order">New Order</button>
+        <button data-action="orders">Orders</button>
+      </nav>
       <button class="menu-btn" data-action="menu" aria-label="Menu"><span></span><span></span><span></span></button>
       ${state.menu ? `<div class="menu-panel">
         <button data-action="new-order">New Order</button>
@@ -457,13 +464,14 @@ function body() {
 function flowView() {
   const showCancel = state.step > 0;
   return `
-    <div class="page-head">
-      <h1>New Order</h1>
-      ${showCancel ? `<button class="btn-cancel" data-action="ask-cancel">✕ Cancel Order</button>` : ""}
-    </div>
-    ${stepper()}
-    ${stepContent()}
-  `;
+    <div class="workspace">
+      <div class="page-head">
+        <h1>New Order</h1>
+        ${showCancel ? `<button class="btn-cancel" data-action="ask-cancel">✕ Cancel Order</button>` : ""}
+      </div>
+      ${stepper()}
+      <div class="stage">${stepContent()}</div>
+    </div>`;
 }
 
 function stepper() {
@@ -514,12 +522,14 @@ function addressStep() {
       <div id="map"></div>
     </div>` : "";
   return `
-    <div class="pad stack">
-      ${field("Address", "draft.line", state.draft.line, 'autocomplete="street-address"')}
-      ${field("Unit #", "draft.unit", state.draft.unit)}
-      ${field("Zip", "draft.zip", state.draft.zip, 'inputmode="numeric" maxlength="5" autocomplete="postal-code"')}
-      ${state.lookupError ? `<p class="err">${esc(state.lookupError)}</p>` : ""}
-      ${selectField("Service Type", "draft.serviceType", state.draft.serviceType, ["Residential", "Commercial", "Enterprise"])}
+    <div class="pad address-grid">
+      <div class="stack">
+        ${field("Address", "draft.line", state.draft.line, 'autocomplete="street-address"')}
+        ${field("Unit #", "draft.unit", state.draft.unit)}
+        ${field("Zip", "draft.zip", state.draft.zip, 'inputmode="numeric" maxlength="5" autocomplete="postal-code"')}
+        ${state.lookupError ? `<p class="err">${esc(state.lookupError)}</p>` : ""}
+        ${selectField("Service Type", "draft.serviceType", state.draft.serviceType, ["Residential", "Commercial", "Enterprise"])}
+      </div>
       ${map}
     </div>
     <div class="btn-row single"><button class="btn btn-gold btn-wide" data-action="next">Next →</button></div>`;
@@ -531,7 +541,7 @@ function serviceSummary(withOverride) {
   const drop = s.existingDrop ? `<span class="pill-yes">Yes</span>` : `<span class="pill-no">No</span>`;
   const icon = state.draft.serviceType === "Residential" ? "⌂" : state.draft.serviceType === "Commercial" ? "▣" : "◆";
   return `
-    <div class="stack" style="gap:18px">
+    <div class="stack facts" style="gap:18px">
       <div><div class="k">Service Address</div><div class="v">${esc(addressLine(s, state.draft.unit))}</div>
         <div class="coords">${s.lat.toFixed(6)}, ${s.lng.toFixed(6)}
           <button class="icon-btn" data-action="copy" data-text="${s.lat.toFixed(6)}, ${s.lng.toFixed(6)}" aria-label="Copy coordinates">⧉</button>
@@ -571,7 +581,7 @@ function productStep() {
   return `
     <div class="pad">${serviceSummary(true)}</div>
     <h2 class="band">Available Packages</h2>
-    <div class="pad" style="padding-top:0">
+    <div class="pad package-list" style="padding-top:0">
       ${state.productError ? `<p class="err">${esc(state.productError)}</p>` : ""}
       ${packages}
     </div>
@@ -624,7 +634,7 @@ function yesNo(bind, value, options) {
 
 function customerStep() {
   const contacts = state.contacts.map((c, i) => `
-    <div class="stack">
+    <div class="stack fields-2">
       ${state.contacts.length > 1 ? `<button class="remove" data-action="remove-contact" data-index="${i}">Remove contact</button>` : ""}
       ${field("Name", `contacts.${i}.name`, c.name)}
       ${selectField("Role", `contacts.${i}.role`, c.role, ROLES)}
@@ -645,7 +655,7 @@ function customerStep() {
     <h2 class="band">Customer Contacts <button class="plus" data-action="add-contact" aria-label="Add contact">+</button></h2>
     <div class="pad stack">${contacts}</div>
     <h2 class="band">Additional Customer Questions</h2>
-    <div class="pad stack">
+    <div class="pad stack fields-2">
       ${selectField("Referred By", "referredBy", state.referredBy, REFERRALS, "Select")}
       ${selectField("Rent or Own?", "rentOrOwn", state.rentOrOwn, ["Rent", "Own"], "Select")}
       <div>
@@ -663,7 +673,7 @@ function customerStep() {
       </div>
     </div>
     <h2 class="band">Installation Date/Time</h2>
-    <div class="pad stack">
+    <div class="pad stack fields-2">
       <p class="hint">If you scheduled the install and know the date and time, please enter it here. Otherwise, ignore.</p>
       <label class="lbl">Installation Date<input class="field" type="date" data-bind="installDate" value="${esc(state.installDate)}"></label>
       ${selectField("Installation Time", "installTime", state.installTime, timeSlots(), "Select")}
@@ -713,7 +723,7 @@ function billingStep() {
       <button class="choice" data-action="autopay"><span class="check ${state.autopay ? "is-on" : ""}"></span> Turn on automatic payment</button>
     </div>
     <h2 class="band">Billing Address</h2>
-    <div class="pad stack">${addressFields("billing", state.billing)}</div>
+    <div class="pad stack fields-2">${addressFields("billing", state.billing)}</div>
     <h2 class="band">Mailing Address</h2>
     <div class="pad stack">
       <button class="choice" data-action="mailing-same"><span class="check ${state.mailingSame ? "is-on" : ""}"></span> Same as Service Address</button>
@@ -760,9 +770,11 @@ function navButtons(enabled, forward = "Continue →") {
 function resultView(order) {
   if (!order) return `<div class="pad">Order not found.</div>`;
   return `
-    <div class="page-head"><h1>Order #${esc(order.number)} <span class="badge-new">New</span></h1></div>
-    ${summaryHTML(order, { review: false })}
-    <div class="btn-row"><button class="btn btn-slate" data-action="orders">← Go Back</button></div>`;
+    <div class="workspace result-layout">
+      <div class="page-head"><h1>Order #${esc(order.number)} <span class="badge-new">New</span></h1></div>
+      <div class="summary-board">${summaryHTML(order, { review: false })}</div>
+      <div class="btn-row"><button class="btn btn-slate" data-action="orders">← Go Back</button></div>
+    </div>`;
 }
 
 function summaryHTML(order, opts) {
@@ -825,13 +837,16 @@ function summaryHTML(order, opts) {
       <div><div class="k">DOB</div><div class="v">${esc(c.dob || "-")}</div></div>
     </div>`).join("<div style='height:22px'></div>");
   const checks = opts.review ? "" : `
+    <section class="panel wide">
     <h2 class="band">Reviewed Disclosures</h2>
     <div class="pad"><div class="checks">
       ${DISCLOSURES.map(([, label]) => `<div class="check-item"><span class="mark">✓</span> ${esc(label)}</div>`).join("")}
-    </div></div>`;
+    </div></div>
+    </section>`;
   return `
+    <section class="panel">
     <h2 class="band">Service Address</h2>
-    <div class="pad stack" style="gap:18px">
+    <div class="pad stack facts" style="gap:18px">
       <div><div class="k">Service Address</div><div class="v">${esc(addressLine(s, s.unit))}</div>
         <div class="coords">${Number(s.lat).toFixed(6)}, ${Number(s.lng).toFixed(6)}
           <button class="icon-btn" data-action="copy" data-text="${Number(s.lat).toFixed(6)}, ${Number(s.lng).toFixed(6)}" aria-label="Copy coordinates">⧉</button>
@@ -843,6 +858,8 @@ function summaryHTML(order, opts) {
       <div><div class="k">Product Group</div><div class="v">${esc(s.productGroup)}</div></div>
       <div><div class="k">Existing Drop</div>${drop}</div>
     </div>
+    </section>
+    <section class="panel">
     <h2 class="band">Customer Information</h2>
     <div class="pad stack" style="gap:18px">
       <div><div class="k">Account Name</div><div class="v">${esc(order.accountName)}</div></div>
@@ -853,6 +870,8 @@ function summaryHTML(order, opts) {
       <div><div class="k">Authorizes Temporary Fiber-drop?</div><div class="v">${esc(order.tempFiberDrop)}</div></div>
       <div><div class="k">Referred By</div><div class="v">${esc(order.referredBy)}</div></div>
     </div>
+    </section>
+    <section class="panel wide">
     <h2 class="band">Products Ordered</h2>
     <div class="pad">
       ${products}${addonHtml}${discount}${fees}
@@ -863,23 +882,36 @@ function summaryHTML(order, opts) {
       </div>
       <div class="once-box"><span>One-time Charges:</span><strong>${money(prices.onetime)}</strong></div>
     </div>
+    </section>
+    <section class="panel">
     <h2 class="band">Voice/Fax Lines</h2>
     <div class="pad">${lines}${portTable}</div>
+    </section>
+    <section class="panel">
     <h2 class="band">Signature Requests</h2>
     <div class="pad"><p class="muted">No signature requests have been sent for this order.</p></div>
+    </section>
+    <section class="panel wide">
     <h2 class="band">Contacts</h2>
     <div class="pad">${contacts}</div>
+    </section>
+    <section class="panel">
     <h2 class="band">Billing Information</h2>
     <div class="pad stack" style="gap:18px">
       <div><div class="k">Payment Method</div><div class="v">${esc(order.payMethod)}</div></div>
       <div><div class="k">Auto-pay</div><div class="v">${esc(order.autopay)}</div></div>
       <div><div class="k">Billing Address</div><div class="v">${esc(addressLine(order.billing, order.billing.unit))}</div></div>
     </div>
+    </section>
     ${checks}
+    <section class="panel">
     <h2 class="band">Sales Notes</h2>
     <div class="pad"><div class="notes">${esc(order.salesNotes) || '<span class="muted">—</span>'}</div></div>
+    </section>
+    <section class="panel">
     <h2 class="band">Install Notes</h2>
-    <div class="pad"><div class="notes">${esc(order.installNotes) || '<span class="muted">—</span>'}</div></div>`;
+    <div class="pad"><div class="notes">${esc(order.installNotes) || '<span class="muted">—</span>'}</div></div>
+    </section>`;
 }
 
 function ordersView() {
@@ -889,7 +921,7 @@ function ordersView() {
       <strong>Order #${esc(order.number)} · ${esc(order.accountName)}</strong>
       <span>${esc(addressLine(order.service, order.service.unit))}</span>
     </button>`).join("") : `<p class="empty">No orders yet. Start a new order to see it here.</p>`;
-  return `<div class="page-head"><h1>Orders</h1></div>${cards}`;
+  return `<div class="workspace orders-layout"><div class="page-head"><h1>Orders</h1></div><div class="order-list">${cards}</div></div>`;
 }
 
 function modals() {
@@ -931,6 +963,8 @@ function mountMap() {
   L.marker([state.service.lat, state.service.lng], { icon }).addTo(map);
   setTimeout(() => map.invalidateSize(), 60);
 }
+
+window.addEventListener("resize", () => { if (map) map.invalidateSize(); });
 
 function setBind(path, value) {
   const parts = path.split(".");
