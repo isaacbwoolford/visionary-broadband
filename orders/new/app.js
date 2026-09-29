@@ -343,12 +343,20 @@ function billingAddressReady() {
   return true;
 }
 
-function billingReady() {
-  if (!billingAddressReady()) return false;
+function paymentTouched() {
+  if (state.payMethod === "ach") return !!(digits(state.achRouting) || digits(state.achAccount));
+  return !!(digits(state.cardNumber) || digits(state.cardExp));
+}
+
+function paymentComplete() {
   if (state.payMethod === "card") {
-    return state.cardName.trim() && digits(state.cardNumber).length >= 13 && digits(state.cardExp).length >= 6;
+    return !!(state.cardName.trim() && digits(state.cardNumber).length >= 13 && digits(state.cardExp).length >= 6);
   }
-  return state.achName.trim() && digits(state.achRouting).length === 9 && digits(state.achAccount).length >= 4;
+  return !!(state.achName.trim() && digits(state.achRouting).length === 9 && digits(state.achAccount).length >= 4);
+}
+
+function billingReady() {
+  return billingAddressReady() && paymentComplete();
 }
 
 function disclosuresReady() {
@@ -613,7 +621,7 @@ function isaacFlowView() {
         ${productStep(false, false)}
         ${hasVoice() ? voiceStep(false) : ""}
         ${customerStep(false, false)}
-        ${billingStep(false, false, false)}
+        ${billingStep(false, false)}
         ${disclosureBlock()}
         <div class="btn-row single">
           <button class="btn btn-gold btn-wide" data-action="submit-order" ${state.saving ? "disabled" : ""}>${state.saving ? "Saving…" : "Submit Order"}</button>
@@ -851,7 +859,7 @@ function addressFields(prefix, data) {
     ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5"')}`;
 }
 
-function paymentBlock() {
+function paymentBlock(optional = false) {
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
     ${field("Card Number", "cardNumber", state.cardNumber, 'inputmode="numeric" placeholder="#### #### #### ####"')}
@@ -865,6 +873,7 @@ function paymentBlock() {
   return `
     <h2 class="band">Payment Method</h2>
     <div class="pad stack">
+      ${optional ? `<p class="hint">Leave this blank if the customer will enter payment.</p>` : ""}
       <button class="choice" data-action="choice" data-bind="payMethod" data-value="card"><span class="radio ${state.payMethod === "card" ? "is-on" : ""}"></span> Credit Card</button>
       <button class="choice" data-action="choice" data-bind="payMethod" data-value="ach"><span class="radio ${state.payMethod === "ach" ? "is-on" : ""}"></span> Account number</button>
       ${pay}
@@ -877,7 +886,7 @@ function billingStep(showNav = true, showSummary = true, showPayment = true) {
   ensureBilling();
   return `
     ${showSummary ? `<div class="pad">${serviceSummary(false)}</div>` : ""}
-    ${showPayment ? paymentBlock() : ""}
+    ${showPayment ? paymentBlock(!showNav) : ""}
     <h2 class="band">Billing Address</h2>
     <div class="pad stack fields-2">${addressFields("billing", state.billing)}</div>
     <h2 class="band">Mailing Address</h2>
@@ -1434,6 +1443,10 @@ async function submitOnePage() {
     state.errors.pay = "Enter the billing address to continue.";
     ok = false;
   }
+  if (paymentTouched() && !paymentComplete()) {
+    state.errors.pay = "Finish the card or account details, or leave them blank to send this to the customer.";
+    ok = false;
+  }
   if (!disclosuresReady()) {
     state.errors.submit = "Review the disclosures before submitting.";
     ok = false;
@@ -1444,7 +1457,7 @@ async function submitOnePage() {
     if (err) err.scrollIntoView({ block: "center" });
     return;
   }
-  await saveCurrentOrder({ payment: false });
+  await saveCurrentOrder({ payment: paymentTouched() });
 }
 
 async function saveCurrentOrder({ payment = true } = {}) {
