@@ -746,7 +746,7 @@ function productStep(showNav = true, showSummary = true) {
     ${showNav ? `<div class="btn-row">
       <button class="btn btn-slate btn-lead" data-action="lead">Create Lead</button>
       <button class="btn btn-gold grow" data-action="continue">Continue →</button>
-    </div>` : `<div class="btn-row single"><button class="btn btn-slate btn-lead" data-action="lead">Create Lead</button></div>`}`;
+    </div>` : ""}`;
 }
 
 function voiceStep(showNav = true) {
