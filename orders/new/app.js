@@ -901,7 +901,7 @@ function paymentBlock(optional = false) {
     </div>`;
 }
 
-function billingStep(showNav = true, showSummary = true, showPayment = true) {
+function billingStep(showNav = true, showSummary = true, showPayment = true, showPromo = true) {
   ensureBilling();
   return `
     ${showSummary ? `<div class="pad">${serviceSummary(false)}</div>` : ""}
@@ -913,10 +913,10 @@ function billingStep(showNav = true, showSummary = true, showPayment = true) {
       <button class="choice" data-action="mailing-same"><span class="check ${state.mailingSame ? "is-on" : ""}"></span> Same as Service Address</button>
       ${state.mailingSame ? "" : addressFields("mailing", state.mailing)}
     </div>
-    <h2 class="band">Discounts / Promotions</h2>
+    ${showPromo ? `<h2 class="band">Discounts / Promotions</h2>
     <div class="pad">
       <button class="choice" data-action="promo"><span class="check ${state.promo ? "is-on" : ""}"></span> Fiber Promo - Project X $50 Credit (limited use)</button>
-    </div>
+    </div>` : ""}
     ${showNav ? navButtons(billingReady()) : ""}
   `;
 }
@@ -986,7 +986,8 @@ function summaryHTML(order, opts) {
       <div class="name">${esc(addon.name)} x${addon.qty}</div>
       <div class="money">${money(addon.price)} / mo</div>
     </div>`).join("");
-  const discount = order.promo ? `
+  const customerViewing = state.screen === "customer";
+  const discount = order.promo && !customerViewing ? `
     <div class="subhead">Discounts</div>
     <div class="product-line">
       <div class="name">Fiber Promo - Project X $50 Credit (limited use)</div>
@@ -1026,7 +1027,7 @@ function summaryHTML(order, opts) {
       <div><div class="k">PIN</div><div class="v">${esc(c.pin || "-")}</div></div>
       <div><div class="k">DOB</div><div class="v">${esc(c.dob || "-")}</div></div>
     </div>`).join("<div style='height:22px'></div>");
-  const checks = opts.review ? "" : `
+  const checks = opts.review || state.screen === "customer" ? "" : `
     <section class="panel wide">
     <h2 class="band">Reviewed Disclosures</h2>
     <div class="pad"><div class="checks">
@@ -1067,7 +1068,7 @@ function summaryHTML(order, opts) {
     <div class="pad">
       ${products}${addonHtml}${discount}${fees}
       <div class="total-box">
-        <div class="total-row"><span>Total at month 1:</span><strong>${money(prices.month1)} / mo *</strong></div>
+        <div class="total-row"><span>Total at month 1:</span><strong>${money(customerViewing ? prices.month2 : prices.month1)} / mo *</strong></div>
         <div class="total-row"><span>Total at month 2+:</span><strong>${money(prices.month2)} / mo *</strong></div>
         <p class="fine">* Plus taxes and fees.</p>
       </div>
@@ -1167,7 +1168,7 @@ function customerDetails() {
     ${productStep(false, false)}
     ${hasVoice() ? voiceStep(false) : ""}
     ${customerStep(false, false, false)}
-    ${billingStep(false, false, false)}
+    ${billingStep(false, false, false, false)}
   `;
 }
 
