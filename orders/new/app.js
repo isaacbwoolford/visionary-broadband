@@ -1286,6 +1286,14 @@ function assign(bind, value) {
     if (line) line[key] = value;
     return;
   }
+  if (bind === "accountName") {
+    const contact = state.contacts[0];
+    if (contact && (!contact.name || contact.name === state.accountName)) {
+      contact.name = value;
+      const nameField = document.querySelector('[data-bind="contacts.0.name"]');
+      if (nameField && document.activeElement !== nameField) nameField.value = value;
+    }
+  }
   setBind(bind, value);
 }
 
