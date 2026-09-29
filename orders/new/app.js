@@ -817,8 +817,6 @@ function customerStep(showNav = true, showSummary = true, showFiber = true) {
       ${yesNo(`contacts.${i}.smsAccount`, c.smsAccount, ["Yes", "No"])}
       <div class="q">Agree to Marketing SMS?</div>
       ${yesNo(`contacts.${i}.smsMarketing`, c.smsMarketing, ["Yes", "No"])}
-      ${field("PIN", `contacts.${i}.pin`, c.pin)}
-      ${field("DOB", `contacts.${i}.dob`, c.dob, 'placeholder="MM/DD/YYYY"')}
       ${selectField("Preferred Contact Method", `contacts.${i}.preferred`, c.preferred, METHODS)}
     </div>`).join("");
   return `
@@ -1022,8 +1020,6 @@ function summaryHTML(order, opts) {
       <div><div class="k">Preferred Method</div><div class="v">${esc(c.preferred)}</div></div>
       <div><div class="k">Agrees to Account Updates SMS?</div><div class="v">${esc(c.smsAccount || "-")}</div></div>
       <div><div class="k">Agrees to Marketing SMS?</div><div class="v">${esc(c.smsMarketing || "-")}</div></div>
-      <div><div class="k">PIN</div><div class="v">${esc(c.pin || "-")}</div></div>
-      <div><div class="k">DOB</div><div class="v">${esc(c.dob || "-")}</div></div>
     </div>`).join("<div style='height:22px'></div>");
   return `
     <section class="panel">
