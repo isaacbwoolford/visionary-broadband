@@ -1342,7 +1342,7 @@ function go(step) {
   window.scrollTo(0, 0);
 }
 
-function showToast(message) {
+function showToast(message, duration = 2200) {
   state.toast = message;
   paint({ keepScroll: true });
   setTimeout(() => {
@@ -1350,7 +1350,7 @@ function showToast(message) {
       state.toast = "";
       paint({ keepScroll: true });
     }
-  }, 2200);
+  }, duration);
 }
 
 async function advance() {
@@ -1533,7 +1533,8 @@ async function saveCustomerLogin(number) {
       order.customerUsername = username.toLowerCase();
       saveOrderRecord(order);
     }
-    state.toast = "Customer login saved.";
+    showToast("Customer login saved.", 10000);
+    return;
   } catch (error) {
     state.errors[`login-${number}`] = loginError(error);
   }
