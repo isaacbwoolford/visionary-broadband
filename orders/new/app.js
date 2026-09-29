@@ -90,7 +90,6 @@ const GROUPS = [
   "Fiber Market D",
 ];
 
-const REFERRALS = ["Outside Sales", "Inside Sales", "Website", "Customer Referral", "Existing Customer", "Event"];
 const ROLES = ["Primary", "Local Contact", "Billing Contact", "Technical Contact"];
 const METHODS = ["Phone", "Email", "Text Message"];
 const DISCLOSURES = [
@@ -332,7 +331,7 @@ function pricing() {
 }
 
 function customerReady() {
-  if (!state.accountName.trim() || !state.referredBy || !state.rentOrOwn) return false;
+  if (!state.accountName.trim() || !state.rentOrOwn) return false;
   return state.contacts.every((c) => c.name.trim() && c.email.includes("@") && digits(c.phone).length >= 10 && c.smsAccount && c.smsMarketing);
 }
 
@@ -793,7 +792,7 @@ function yesNo(bind, value, options) {
     </button>`).join("")}</div>`;
 }
 
-function customerStep(showNav = true, showSummary = true, showFiber = true) {
+function customerStep(showNav = true, showSummary = true) {
   const contacts = state.contacts.map((c, i) => `
     <div class="stack fields-2">
       ${state.contacts.length > 1 ? `<button class="remove" data-action="remove-contact" data-index="${i}">Remove contact</button>` : ""}
@@ -818,21 +817,11 @@ function customerStep(showNav = true, showSummary = true, showFiber = true) {
     <div class="pad stack">${contacts}</div>
     <h2 class="band">Additional Customer Questions</h2>
     <div class="pad stack fields-2">
-      ${selectField("Referred By", "referredBy", state.referredBy, REFERRALS, "Select")}
       ${selectField("Rent or Own?", "rentOrOwn", state.rentOrOwn, ["Rent", "Own"], "Select")}
       <div>
         <div class="q">Authorizes on-site visit?</div>
         ${yesNo("onSite", state.onSite, ["No", "Yes"])}
       </div>
-      ${showFiber ? `<div>
-        <div class="q">Authorizes fiber-drop?</div>
-        ${yesNo("fiberDrop", state.fiberDrop, ["No", "Yes"])}
-        ${state.errors.fiberDrop ? `<p class="err">${esc(state.errors.fiberDrop)}</p>` : ""}
-      </div>
-      <div>
-        <div class="q">Authorizes temporary fiber-drop?</div>
-        ${yesNo("tempFiberDrop", state.tempFiberDrop, ["No", "Yes"])}
-      </div>` : ""}
     </div>
     <h2 class="band">Installation Date/Time</h2>
     <div class="pad stack fields-2">
@@ -1037,9 +1026,6 @@ function summaryHTML(order, opts) {
       <div><div class="k">Mailing Address</div><div class="v">${mailing}</div></div>
       <div><div class="k">Rent or Own?</div><div class="v">${esc(order.rentOrOwn)}</div></div>
       <div><div class="k">Authorized On-site Visit?</div><div class="v">${esc(order.onSite)}</div></div>
-      ${state.screen === "customer" ? "" : `<div><div class="k">Authorizes Fiber-drop?</div><div class="v">${esc(order.fiberDrop)}</div></div>
-      <div><div class="k">Authorizes Temporary Fiber-drop?</div><div class="v">${esc(order.tempFiberDrop)}</div></div>`}
-      ${state.screen === "customer" ? "" : `<div><div class="k">Referred By</div><div class="v">${esc(order.referredBy)}</div></div>`}
       ${order.installDate || order.installTime ? `<div><div class="k">Installation</div><div class="v">${esc(formatInstall(order))}</div></div>` : ""}
     </div>
     </section>
@@ -1146,7 +1132,7 @@ function customerDetails() {
     ${state.service ? `<div class="pad">${serviceSummary(true)}</div>` : ""}
     ${productStep(false, false)}
     ${hasVoice() ? voiceStep(false) : ""}
-    ${customerStep(false, false, false)}
+    ${customerStep(false, false)}
     ${billingStep(false, false, false, false)}
   `;
 }
@@ -1402,13 +1388,6 @@ async function advance() {
   }
   if (state.step === 3) {
     if (!customerReady()) return;
-    if (!state.fiberDrop) {
-      state.errors.fiberDrop = "Please answer the Authorize Fiber Drop question.";
-      paint({ keepScroll: true });
-      const err = document.querySelector(".err");
-      if (err) err.scrollIntoView({ block: "center" });
-      return;
-    }
     go(4);
     return;
   }
@@ -1446,11 +1425,7 @@ async function submitOnePage() {
     }
   });
   if (!customerReady()) {
-    state.errors.customer = "Enter the account name, referral, rent or own, and a complete contact.";
-    ok = false;
-  }
-  if (!state.fiberDrop) {
-    state.errors.fiberDrop = "Please answer the Authorize Fiber Drop question.";
+    state.errors.customer = "Enter the account name, rent or own, and a complete contact.";
     ok = false;
   }
   if (state.service) ensureBilling();
@@ -1754,7 +1729,6 @@ document.addEventListener("click", (event) => {
       setBind(el.dataset.bind, value);
     } else {
       state[el.dataset.bind] = value;
-      if (el.dataset.bind === "fiberDrop") state.errors.fiberDrop = "";
       if (el.dataset.bind === "payMethod") state.errors.pay = "";
     }
     paint({ keepScroll: true });
