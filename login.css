@@ -1,0 +1,89 @@
+:root {
+  --ink: #1c2128;
+  --gold: #f5b400;
+  --red: #e23b3b;
+  --line: #d5dbe3;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  background: #fff;
+  color: var(--ink);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+button, input { font: inherit; color: inherit; }
+
+.card {
+  width: min(420px, calc(100vw - 48px));
+  min-height: min(420px, calc(100vw - 48px));
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(20, 28, 40, 0.14);
+  display: flex;
+  flex-direction: column;
+}
+.card-head {
+  background: #000;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  padding: 0 20px;
+  flex: 0 0 auto;
+}
+.card-head img {
+  height: 46px;
+  width: auto;
+  max-width: 100%;
+  display: block;
+}
+form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 28px 28px 32px;
+}
+label {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  outline: none;
+  min-height: 46px;
+}
+input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(245, 180, 0, 0.2);
+}
+button {
+  border: 0;
+  border-radius: 8px;
+  min-height: 48px;
+  padding: 12px 18px;
+  font-weight: 700;
+  font-size: 16px;
+  background: var(--gold);
+  color: #1a1d21;
+  cursor: pointer;
+  margin-top: 4px;
+}
+button:hover { filter: brightness(0.97); }
+button:disabled { background: #eceff3; color: #b0b6be; cursor: default; }
+.err {
+  color: var(--red);
+  font-size: 14px;
+  margin: 0;
+  min-height: 1.2em;
+}

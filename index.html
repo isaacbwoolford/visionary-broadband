@@ -3,16 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Visionary Broadband</title>
-  <meta name="description" content="New service orders for Visionary Broadband.">
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="styles.css">
+  <title>Sign in · Visionary Broadband</title>
+  <link rel="icon" href="/orders/favicon.svg?v=20260928g" type="image/svg+xml">
+  <link rel="stylesheet" href="login.css?v=20260928h">
 </head>
 <body>
-  <div id="app" class="app"></div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="config.js?v=20260928d"></script>
-  <script src="app.js?v=20260928f"></script>
+  <main class="card">
+    <div class="card-head">
+      <img src="/orders/logo.png?v=3" alt="Visionary Broadband">
+    </div>
+    <form id="login">
+      <div>
+        <label for="name">Name</label>
+        <input id="name" name="name" autocomplete="username" required>
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <p class="err" id="error" role="alert"></p>
+      <button type="submit" id="submit">Sign in</button>
+    </form>
+  </main>
+  <script src="auth.js?v=20260928h"></script>
+  <script>
+    if (vbSessionValid()) location.replace("/orders/");
+
+    document.getElementById("login").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = document.getElementById("submit");
+      const error = document.getElementById("error");
+      error.textContent = "";
+      button.disabled = true;
+      const ok = await vbSignIn(form.name.value, form.password.value);
+      if (ok) {
+        location.replace("/orders/");
+        return;
+      }
+      error.textContent = "That name and password don't match.";
+      button.disabled = false;
+      form.password.focus();
+    });
+  </script>
 </body>
 </html>

@@ -8,7 +8,7 @@ Mobile-first order flow for [visionary-broadband.com](https://visionary-broadban
 python3 -m http.server 8766
 ```
 
-Open `http://127.0.0.1:8766`.
+Open `http://127.0.0.1:8766/`. Sign in to reach `/orders/`.
 
 ## Deploy (GitHub Pages)
 
