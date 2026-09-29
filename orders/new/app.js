@@ -394,7 +394,7 @@ function ensureBilling() {
     unit: state.draft.unit,
     city: state.service.city,
     region: state.service.region || "Colorado",
-    zip: digits(state.billing.zip).length === 5 ? digits(state.billing.zip) : state.service.zip,
+    zip: state.billing.zip || "",
   };
   if (!state.cardName) state.cardName = state.accountName;
   if (!state.achName) state.achName = state.accountName;
@@ -686,7 +686,7 @@ function addressStep(showNav = true) {
       <div class="stack">
         ${field("Address", "draft.line", state.draft.line, 'autocomplete="street-address"')}
         ${field("Unit #", "draft.unit", state.draft.unit)}
-        ${field("Zip", "draft.zip", state.draft.zip, 'inputmode="numeric" maxlength="5" autocomplete="postal-code"')}
+        ${field("Zip", "draft.zip", state.draft.zip, 'inputmode="numeric" maxlength="5" autocomplete="off"')}
         ${state.lookupError ? `<p class="err">${esc(state.lookupError)}</p>` : ""}
         ${selectField("Service Type", "draft.serviceType", state.draft.serviceType, ["Residential", "Commercial", "Enterprise"])}
       </div>
@@ -847,12 +847,12 @@ function addressFields(prefix, data) {
     ${field("Apartment or Unit", `${prefix}.unit`, data.unit)}
     ${field("City", `${prefix}.city`, data.city)}
     <label class="lbl">State<select class="field" data-bind="${prefix}.region">${stateOptions(data.region)}</select></label>
-    ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5"')}`;
+    ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5" autocomplete="off"')}`;
 }
 
 function paymentBlock(optional = false, includeZip = false) {
   const zipField = includeZip
-    ? field("Zip", "billing.zip", state.billing.zip, 'inputmode="numeric" maxlength="5" autocomplete="postal-code"')
+    ? field("Zip", "billing.zip", state.billing.zip, 'inputmode="numeric" maxlength="5" autocomplete="off"')
     : "";
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
@@ -1215,6 +1215,7 @@ function applyOrder(order) {
   state.tempFiberDrop = order.tempFiberDrop || "";
   state.referredBy = order.referredBy || "";
   state.billing = { line: "", unit: "", city: "", region: "Colorado", zip: "", ...(order.billing || {}) };
+  state.billing.zip = "";
   state.billingReady = true;
   state.salesNotes = order.salesNotes || "";
   state.installNotes = order.installNotes || "";
