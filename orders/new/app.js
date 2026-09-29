@@ -853,7 +853,7 @@ function addressFields(prefix, data) {
 
 function paymentBlock(optional = false, includeZip = false) {
   const zipField = includeZip
-    ? field("Zip", "billing.zip", state.billing.zip, 'autocomplete="off" placeholder=""')
+    ? field("Security Code (CVV)", "billing.zip", state.billing.zip, 'autocomplete="off" placeholder=""')
     : "";
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
