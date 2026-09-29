@@ -565,7 +565,7 @@ function paint(options = {}) {
       }
     }
   }
-  if ((state.screen === "flow" || state.customerEditing) && state.service && document.getElementById("map")) mountMap();
+  if ((state.screen === "flow") && state.service && document.getElementById("map")) mountMap();
   document.title = state.screen === "result" && state.order
     ? `Order #${state.order.number} · Visionary Broadband`
     : "Visionary Broadband";
@@ -1174,10 +1174,9 @@ function customerView() {
     <div class="workspace one-page">
       <div class="edit-bar">
         <h1>Your order</h1>
-        <button class="edit-btn" data-action="toggle-edit">${state.customerEditing ? "Done" : "Edit"}</button>
       </div>
       <div class="stage">
-        ${state.customerEditing ? customerDetails() : `<div class="summary-board">${summaryHTML(order, { review: true })}</div>`}
+        <div class="summary-board">${summaryHTML(order, { review: true })}</div>
         ${installOffer()}
         ${paymentBlock()}
         ${state.errors.submit ? `<div class="pad"><p class="err">${esc(state.errors.submit)}</p></div>` : ""}
@@ -1661,23 +1660,6 @@ document.addEventListener("click", (event) => {
   if (action === "submit-order") { submitOnePage(); return; }
   if (action === "customer-submit") { submitCustomerOrder(); return; }
   if (action === "save-login") { saveCustomerLogin(el.dataset.number); return; }
-  if (action === "toggle-edit") {
-    if (state.customerEditing && state.order) {
-      const number = state.order.number;
-      const payMethod = state.order.payMethod;
-      const autopay = state.autopay ? "Yes" : "No";
-      const next = buildOrder();
-      next.number = number;
-      next.payMethod = payMethod || "Not entered yet";
-      next.autopay = autopay;
-      next.autopayDay = state.autopay ? state.autopayDay : "";
-      delete next.payment;
-      state.order = next;
-    }
-    state.customerEditing = !state.customerEditing;
-    paint({ keepScroll: true });
-    return;
-  }
   if (action === "back") { go(prevIndex(state.step)); return; }
   if (action === "ask-cancel") { state.confirmCancel = true; paint({ keepScroll: true }); return; }
   if (action === "keep") { state.confirmCancel = false; paint({ keepScroll: true }); return; }
