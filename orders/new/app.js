@@ -1055,9 +1055,8 @@ function summaryHTML(order, opts) {
     <div class="pad">
       ${products}${addonHtml}${discount}${fees}
       <div class="total-box">
-        <div class="total-row"><span>Total at month 1:</span><strong>${money(prices.month1)} / mo *</strong></div>
-        <div class="total-row"><span>Total at month 2+:</span><strong>${money(prices.month2)} / mo *</strong></div>
-        <p class="fine">* Plus taxes.</p>
+        <div class="total-row"><span>Total at month 1:</span><strong>${money(prices.month1)} / mo</strong></div>
+        <div class="total-row"><span>Total at month 2+:</span><strong>${money(prices.month2)} / mo</strong></div>
       </div>
       <div class="once-box"><span>One-time Charges:</span><strong>${money(prices.onetime)}</strong></div>
     </div>
