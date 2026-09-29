@@ -224,7 +224,7 @@ function saveOrderRecord(order) {
 
 function timeSlots() {
   const out = [];
-  for (let m = 6 * 60; m <= 20 * 60; m += 15) {
+  for (let m = 9 * 60; m <= 13 * 60; m += 15) {
     const h = Math.floor(m / 60);
     const min = m % 60;
     const suffix = h >= 12 ? "PM" : "AM";
