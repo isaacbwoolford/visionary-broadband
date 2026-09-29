@@ -789,7 +789,7 @@ function yesNo(bind, value, options) {
     </button>`).join("")}</div>`;
 }
 
-function customerStep(showNav = true, showSummary = true) {
+function customerStep(showNav = true, showSummary = true, showFiber = true) {
   const contacts = state.contacts.map((c, i) => `
     <div class="stack fields-2">
       ${state.contacts.length > 1 ? `<button class="remove" data-action="remove-contact" data-index="${i}">Remove contact</button>` : ""}
@@ -822,7 +822,7 @@ function customerStep(showNav = true, showSummary = true) {
         <div class="q">Authorizes on-site visit?</div>
         ${yesNo("onSite", state.onSite, ["No", "Yes"])}
       </div>
-      <div>
+      ${showFiber ? `<div>
         <div class="q">Authorizes fiber-drop?</div>
         ${yesNo("fiberDrop", state.fiberDrop, ["No", "Yes"])}
         ${state.errors.fiberDrop ? `<p class="err">${esc(state.errors.fiberDrop)}</p>` : ""}
@@ -830,7 +830,7 @@ function customerStep(showNav = true, showSummary = true) {
       <div>
         <div class="q">Authorizes temporary fiber-drop?</div>
         ${yesNo("tempFiberDrop", state.tempFiberDrop, ["No", "Yes"])}
-      </div>
+      </div>` : ""}
     </div>
     <h2 class="band">Installation Date/Time</h2>
     <div class="pad stack fields-2">
@@ -1037,8 +1037,8 @@ function summaryHTML(order, opts) {
       <div><div class="k">Mailing Address</div><div class="v">${mailing}</div></div>
       <div><div class="k">Rent or Own?</div><div class="v">${esc(order.rentOrOwn)}</div></div>
       <div><div class="k">Authorized On-site Visit?</div><div class="v">${esc(order.onSite)}</div></div>
-      <div><div class="k">Authorizes Fiber-drop?</div><div class="v">${esc(order.fiberDrop)}</div></div>
-      <div><div class="k">Authorizes Temporary Fiber-drop?</div><div class="v">${esc(order.tempFiberDrop)}</div></div>
+      ${state.screen === "customer" ? "" : `<div><div class="k">Authorizes Fiber-drop?</div><div class="v">${esc(order.fiberDrop)}</div></div>
+      <div><div class="k">Authorizes Temporary Fiber-drop?</div><div class="v">${esc(order.tempFiberDrop)}</div></div>`}
       <div><div class="k">Referred By</div><div class="v">${esc(order.referredBy)}</div></div>
       ${order.installDate || order.installTime ? `<div><div class="k">Installation</div><div class="v">${esc(formatInstall(order))}</div></div>` : ""}
     </div>
@@ -1147,7 +1147,7 @@ function customerDetails() {
     ${state.service ? `<div class="pad">${serviceSummary(true)}</div>` : ""}
     ${productStep(false, false)}
     ${hasVoice() ? voiceStep(false) : ""}
-    ${customerStep(false, false)}
+    ${customerStep(false, false, false)}
     ${billingStep(false, false, false)}
   `;
 }
