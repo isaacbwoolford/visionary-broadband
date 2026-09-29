@@ -197,6 +197,11 @@ button { cursor: pointer; }
   align-items: center;
   justify-content: space-between;
 }
+.lock {
+  display: inline-flex;
+  color: #6b7280;
+}
+.lock svg { width: 18px; height: 18px; display: block; }
 .pad { padding: 8px 20px 20px; }
 .stack { display: grid; gap: 14px; }
 label.lbl, .k {

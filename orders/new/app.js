@@ -885,7 +885,7 @@ function paymentBlock(optional = false) {
     ${selectField("Account Type", "achType", state.achType, ["Checking", "Savings"])}
   `;
   return `
-    <h2 class="band">Payment Method</h2>
+    <h2 class="band">Payment Method<span class="lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></h2>
     <div class="pad stack">
       ${optional ? `<p class="hint">Leave this blank if the customer will enter payment.</p>` : ""}
       <button class="choice" data-action="choice" data-bind="payMethod" data-value="card"><span class="radio ${state.payMethod === "card" ? "is-on" : ""}"></span> Credit Card</button>
