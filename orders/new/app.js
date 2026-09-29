@@ -1046,7 +1046,7 @@ function summaryHTML(order, opts) {
       <div><div class="k">Authorized On-site Visit?</div><div class="v">${esc(order.onSite)}</div></div>
       ${state.screen === "customer" ? "" : `<div><div class="k">Authorizes Fiber-drop?</div><div class="v">${esc(order.fiberDrop)}</div></div>
       <div><div class="k">Authorizes Temporary Fiber-drop?</div><div class="v">${esc(order.tempFiberDrop)}</div></div>`}
-      <div><div class="k">Referred By</div><div class="v">${esc(order.referredBy)}</div></div>
+      ${state.screen === "customer" ? "" : `<div><div class="k">Referred By</div><div class="v">${esc(order.referredBy)}</div></div>`}
       ${order.installDate || order.installTime ? `<div><div class="k">Installation</div><div class="v">${esc(formatInstall(order))}</div></div>` : ""}
     </div>
     </section>
