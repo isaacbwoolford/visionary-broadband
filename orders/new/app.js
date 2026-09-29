@@ -1086,10 +1086,10 @@ function summaryHTML(order, opts) {
     <h2 class="band">Sales Notes</h2>
     <div class="pad"><div class="notes">${esc(order.salesNotes) || '<span class="muted">—</span>'}</div></div>
     </section>
-    <section class="panel">
+    ${state.screen === "customer" ? "" : `<section class="panel">
     <h2 class="band">Install Notes</h2>
     <div class="pad"><div class="notes">${esc(order.installNotes) || '<span class="muted">—</span>'}</div></div>
-    </section>`;
+    </section>`}`;
 }
 
 function ordersView() {
@@ -1134,7 +1134,7 @@ function formatInstall(order) {
 
 function installOffer() {
   return `
-    <section class="panel">
+    <section class="panel wide">
       <h2 class="band">Installation</h2>
       <div class="pad install-cost">
         <div><div class="k">Installation cost</div><div class="v">Free</div></div>
@@ -1171,9 +1171,15 @@ function customerView() {
         <h1>Your order</h1>
       </div>
       <div class="stage">
-        <div class="summary-board">${summaryHTML(order, { review: true })}</div>
-        ${installOffer()}
-        ${paymentBlock()}
+        <div class="summary-board">
+          ${summaryHTML(order, { review: true })}
+          ${installOffer()}
+          <section class="panel wide">${paymentBlock()}</section>
+          <section class="panel wide">
+            <h2 class="band">Install Notes</h2>
+            <div class="pad"><textarea class="field" data-bind="installNotes" placeholder="Feel free to leave any notes for your installation technician">${esc(state.installNotes)}</textarea></div>
+          </section>
+        </div>
         ${state.errors.submit ? `<div class="pad"><p class="err">${esc(state.errors.submit)}</p></div>` : ""}
         <div class="btn-row single">
           <button class="btn btn-gold btn-wide" data-action="customer-submit" ${state.saving ? "disabled" : ""}>${state.saving ? "Saving…" : "Submit"}</button>
