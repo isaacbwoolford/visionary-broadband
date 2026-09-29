@@ -638,7 +638,7 @@ function isaacFlowView() {
         ${hasVoice() ? voiceStep(false) : ""}
         ${customerStep(false, false)}
         ${billingStep(false, false)}
-        ${disclosureBlock()}
+        ${state.errors.submit ? `<div class="pad"><p class="err">${esc(state.errors.submit)}</p></div>` : ""}
         <div class="btn-row single">
           <button class="btn btn-gold btn-wide" data-action="submit-order" ${state.saving ? "disabled" : ""}>${state.saving ? "Saving…" : "Submit Order"}</button>
         </div>
@@ -938,8 +938,7 @@ function disclosureBlock() {
 function reviewStep() {
   return `
     ${summaryHTML(previewOrder(), { review: true })}
-    ${disclosureBlock()}
-    ${navButtons(disclosuresReady() && !state.saving, state.saving ? "Saving…" : "Submit Order")}
+    ${navButtons(!state.saving, state.saving ? "Saving…" : "Submit Order")}
   `;
 }
 
@@ -986,8 +985,7 @@ function summaryHTML(order, opts) {
       <div class="name">${esc(addon.name)} x${addon.qty}</div>
       <div class="money">${money(addon.price)} / mo</div>
     </div>`).join("");
-  const customerViewing = state.screen === "customer";
-  const discount = order.promo && !customerViewing ? `
+  const discount = order.promo ? `
     <div class="subhead">Discounts</div>
     <div class="product-line">
       <div class="name">Fiber Promo - Project X $50 Credit (limited use)</div>
@@ -1027,13 +1025,6 @@ function summaryHTML(order, opts) {
       <div><div class="k">PIN</div><div class="v">${esc(c.pin || "-")}</div></div>
       <div><div class="k">DOB</div><div class="v">${esc(c.dob || "-")}</div></div>
     </div>`).join("<div style='height:22px'></div>");
-  const checks = opts.review || state.screen === "customer" ? "" : `
-    <section class="panel wide">
-    <h2 class="band">Reviewed Disclosures</h2>
-    <div class="pad"><div class="checks">
-      ${DISCLOSURES.map(([, label]) => `<div class="check-item"><span class="mark">✓</span> ${esc(label)}</div>`).join("")}
-    </div></div>
-    </section>`;
   return `
     <section class="panel">
     <h2 class="band">Service Address</h2>
@@ -1068,7 +1059,7 @@ function summaryHTML(order, opts) {
     <div class="pad">
       ${products}${addonHtml}${discount}${fees}
       <div class="total-box">
-        <div class="total-row"><span>Total at month 1:</span><strong>${money(customerViewing ? prices.month2 : prices.month1)} / mo *</strong></div>
+        <div class="total-row"><span>Total at month 1:</span><strong>${money(prices.month1)} / mo *</strong></div>
         <div class="total-row"><span>Total at month 2+:</span><strong>${money(prices.month2)} / mo *</strong></div>
         <p class="fine">* Plus taxes and fees.</p>
       </div>
@@ -1096,7 +1087,6 @@ function summaryHTML(order, opts) {
       <div><div class="k">Billing Address</div><div class="v">${esc(addressLine(order.billing, order.billing.unit))}</div></div>
     </div>
     </section>
-    ${checks}
     <section class="panel">
     <h2 class="band">Sales Notes</h2>
     <div class="pad"><div class="notes">${esc(order.salesNotes) || '<span class="muted">—</span>'}</div></div>
@@ -1329,7 +1319,7 @@ function refreshContinue() {
   let ready = true;
   if (state.step === 3) ready = customerReady();
   if (state.step === 4) ready = billingReady();
-  if (state.step === 5) ready = disclosuresReady();
+  if (state.step === 5) ready = true;
   button.classList.toggle("is-off", !ready);
 }
 
@@ -1483,10 +1473,6 @@ async function submitOnePage() {
     state.errors.pay = "Choose a payment date from the 5th to the 25th.";
     ok = false;
   }
-  if (!disclosuresReady()) {
-    state.errors.submit = "Review the disclosures before submitting.";
-    ok = false;
-  }
   if (!ok) {
     paint({ keepScroll: true });
     const err = document.querySelector(".err");
@@ -1498,7 +1484,6 @@ async function submitOnePage() {
 
 async function saveCurrentOrder({ payment = true } = {}) {
   if (state.saving) return;
-  if (payment && !disclosuresReady()) return;
   state.voiceLines.forEach((line) => {
     if (line.porting && !line.portId) line.portId = `#${100 + Math.floor(Math.random() * 900)}`;
   });
