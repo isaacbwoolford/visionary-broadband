@@ -717,3 +717,21 @@ select.field {
 .install-cost p { margin: 8px 0 0; }
 .congrats { font-size: 18px; line-height: 1.5; }
 .congrats p { margin: 0 0 12px; }
+
+.autopay-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.autopay-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
+.autopay-day span { font-size: 14px; white-space: nowrap; }
+.autopay-day .field { width: auto; min-width: 108px; margin: 0; min-height: 40px; padding: 8px 36px 8px 12px; }

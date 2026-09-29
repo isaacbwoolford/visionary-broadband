@@ -160,6 +160,7 @@ function fresh() {
     achAccount: "",
     achType: "Checking",
     autopay: false,
+    autopayDay: "",
     billingReady: false,
     billing: { line: "", unit: "", city: "", region: "Colorado", zip: "" },
     mailingSame: true,
@@ -356,7 +357,21 @@ function paymentComplete() {
 }
 
 function billingReady() {
-  return billingAddressReady() && paymentComplete();
+  return billingAddressReady() && paymentComplete() && (!state.autopay || !!state.autopayDay);
+}
+
+function autopayDayOptions() {
+  const suffix = (day) => {
+    const teen = day % 100;
+    if (teen >= 11 && teen <= 13) return "th";
+    if (day % 10 === 1) return "st";
+    if (day % 10 === 2) return "nd";
+    if (day % 10 === 3) return "rd";
+    return "th";
+  };
+  const days = [];
+  for (let day = 5; day <= 25; day += 1) days.push(`${day}${suffix(day)}`);
+  return days;
 }
 
 function disclosuresReady() {
@@ -415,6 +430,7 @@ function buildOrder() {
     contacts: state.contacts.map((c) => ({ ...c })),
     payMethod: state.payMethod === "ach" ? "ACH" : state.payMethod === "card" ? "Credit Card" : "Not entered yet",
     autopay: state.autopay ? "Yes" : "No",
+    autopayDay: state.autopay ? state.autopayDay : "",
     billing: { ...state.billing },
     salesNotes: state.salesNotes.trim(),
     installNotes: state.installNotes.trim(),
@@ -878,7 +894,10 @@ function paymentBlock(optional = false) {
       <button class="choice" data-action="choice" data-bind="payMethod" data-value="ach"><span class="radio ${state.payMethod === "ach" ? "is-on" : ""}"></span> Account number</button>
       ${pay}
       ${state.errors.pay ? `<p class="err">${esc(state.errors.pay)}</p>` : ""}
-      <button class="choice" data-action="autopay"><span class="check ${state.autopay ? "is-on" : ""}"></span> Turn on automatic payment</button>
+      <div class="autopay-row">
+        <button class="choice" data-action="autopay"><span class="check ${state.autopay ? "is-on" : ""}"></span> Turn on automatic payment</button>
+        ${state.autopay ? `<label class="autopay-day"><span>Payment date</span><select class="field" data-bind="autopayDay"><option value="">Select</option>${autopayDayOptions().map((day) => `<option ${day === state.autopayDay ? "selected" : ""}>${esc(day)}</option>`).join("")}</select></label>` : ""}
+      </div>
     </div>`;
 }
 
@@ -1071,7 +1090,7 @@ function summaryHTML(order, opts) {
     <h2 class="band">Billing Information</h2>
     <div class="pad stack" style="gap:18px">
       <div><div class="k">Payment Method</div><div class="v">${esc(order.payMethod)}</div></div>
-      <div><div class="k">Auto-pay</div><div class="v">${esc(order.autopay)}</div></div>
+      <div><div class="k">Auto-pay</div><div class="v">${esc(order.autopay)}${order.autopay === "Yes" && order.autopayDay ? ` · ${esc(order.autopayDay)}` : ""}</div></div>
       ${order.payment ? `<p class="fine">Card and bank numbers are stored encrypted.</p>` : ""}
       <div><div class="k">Billing Address</div><div class="v">${esc(addressLine(order.billing, order.billing.unit))}</div></div>
     </div>
@@ -1224,6 +1243,8 @@ function applyOrder(order) {
   state.promo = !!order.promo;
   state.disclosures = { ...(order.disclosures || {}) };
   state.payMethod = "card";
+  state.autopay = order.autopay === "Yes";
+  state.autopayDay = order.autopayDay || "";
   state.order = order;
 }
 
@@ -1409,7 +1430,9 @@ async function advance() {
   }
   if (state.step === 4) {
     if (!billingReady()) {
-      state.errors.pay = "Enter the payment and billing details to continue.";
+      state.errors.pay = billingAddressReady() && paymentComplete()
+        ? "Choose a payment date from the 5th to the 25th."
+        : "Enter the payment and billing details to continue.";
       paint({ keepScroll: true });
       return;
     }
@@ -1455,6 +1478,10 @@ async function submitOnePage() {
     state.errors.pay = "Finish the card or account details, or leave them blank to send this to the customer.";
     ok = false;
   }
+  if (state.autopay && !state.autopayDay) {
+    state.errors.pay = "Choose a payment date from the 5th to the 25th.";
+    ok = false;
+  }
   if (!disclosuresReady()) {
     state.errors.submit = "Review the disclosures before submitting.";
     ok = false;
@@ -1479,7 +1506,6 @@ async function saveCurrentOrder({ payment = true } = {}) {
   if (!payment) {
     order.payment = null;
     order.payMethod = "Not entered yet";
-    order.autopay = "No";
   }
   state.saving = true;
   state.errors.submit = "";
@@ -1567,7 +1593,9 @@ async function submitCustomerOrder() {
   state.errors = {};
   if (state.service) ensureBilling();
   if (!billingReady()) {
-    state.errors.pay = "Enter the payment and billing details to continue.";
+    state.errors.pay = billingAddressReady() && paymentComplete()
+      ? "Choose a payment date from the 5th to the 25th."
+      : "Enter the payment and billing details to continue.";
     paint({ keepScroll: true });
     const err = document.querySelector(".err");
     if (err) err.scrollIntoView({ block: "center" });
@@ -1651,11 +1679,12 @@ document.addEventListener("click", (event) => {
     if (state.customerEditing && state.order) {
       const number = state.order.number;
       const payMethod = state.order.payMethod;
-      const autopay = state.order.autopay;
+      const autopay = state.autopay ? "Yes" : "No";
       const next = buildOrder();
       next.number = number;
       next.payMethod = payMethod || "Not entered yet";
-      next.autopay = autopay || "No";
+      next.autopay = autopay;
+      next.autopayDay = state.autopay ? state.autopayDay : "";
       delete next.payment;
       state.order = next;
     }
