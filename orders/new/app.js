@@ -1072,7 +1072,7 @@ function summaryHTML(order, opts) {
     </section>
     <section class="panel">
     <h2 class="band">Signature Requests</h2>
-    <div class="pad"><p class="muted">No signature requests have been sent for this order.</p></div>
+    <div class="pad"><p class="muted">No signature requests are needed for this order.</p></div>
     </section>
     <section class="panel wide">
     <h2 class="band">Contacts</h2>
