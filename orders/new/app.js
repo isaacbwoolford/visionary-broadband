@@ -242,13 +242,14 @@ function matchFixture(line, zip) {
     productGroup: "Fiber Market B - AC Tags",
     existingDrop: false,
   };
-  if (zip === "81201" && /\bhunt\b/.test(n)) {
+  const code = digits(zip);
+  if (code === "81201" && /\bhunt\b/.test(n)) {
     return { ...base, city: "Salida", region: "Colorado", lat: 38.529676, lng: -105.98872, zone: "SALDCO.ZONE12A", zoneStatus: "FiberAerial - UnderConstruction" };
   }
-  if (zip === "81201" && /\bholman\b/.test(n)) {
+  if (code === "81201" && /\bholman\b/.test(n)) {
     return { ...base, city: "Salida", region: "Colorado", lat: 38.528648, lng: -106.010468, zone: "SALDCO.ZONE11A", zoneStatus: "FiberAerial - UnderConstruction" };
   }
-  if (zip === "81201") {
+  if (code === "81201") {
     const hash = [...n].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
     return {
       ...base,
@@ -487,7 +488,7 @@ function importPaymentKey() {
 }
 
 async function encryptPayment() {
-  const zip = digits(state.billing.zip).slice(0, 5);
+  const zip = state.billing.zip.trim();
   const secret = state.payMethod === "card"
     ? { cardName: state.cardName.trim(), cardNumber: digits(state.cardNumber), cardExp: state.cardExp.trim(), zip }
     : {
@@ -686,7 +687,7 @@ function addressStep(showNav = true) {
       <div class="stack">
         ${field("Address", "draft.line", state.draft.line, 'autocomplete="street-address"')}
         ${field("Unit #", "draft.unit", state.draft.unit)}
-        ${field("Zip", "draft.zip", state.draft.zip, 'inputmode="numeric" maxlength="5" autocomplete="off" placeholder=""')}
+        ${field("Zip", "draft.zip", state.draft.zip, 'autocomplete="off" placeholder=""')}
         ${state.lookupError ? `<p class="err">${esc(state.lookupError)}</p>` : ""}
         ${selectField("Service Type", "draft.serviceType", state.draft.serviceType, ["Residential", "Commercial", "Enterprise"])}
       </div>
@@ -847,12 +848,12 @@ function addressFields(prefix, data) {
     ${field("Apartment or Unit", `${prefix}.unit`, data.unit)}
     ${field("City", `${prefix}.city`, data.city)}
     <label class="lbl">State<select class="field" data-bind="${prefix}.region">${stateOptions(data.region)}</select></label>
-    ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5" autocomplete="off" placeholder=""')}`;
+    ${field("Zip", `${prefix}.zip`, data.zip, 'autocomplete="off" placeholder=""')}`;
 }
 
 function paymentBlock(optional = false, includeZip = false) {
   const zipField = includeZip
-    ? field("Zip", "billing.zip", state.billing.zip, 'inputmode="numeric" maxlength="5" autocomplete="off" placeholder=""')
+    ? field("Zip", "billing.zip", state.billing.zip, 'autocomplete="off" placeholder=""')
     : "";
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
@@ -1198,7 +1199,7 @@ function applyOrder(order) {
     zip: order.service?.zip || "",
     serviceType: order.service?.serviceType || "Residential",
   };
-  state.serviceKey = `${state.draft.line.trim().toLowerCase()}|${digits(state.draft.zip)}`;
+  state.serviceKey = `${state.draft.line.trim().toLowerCase()}|${state.draft.zip.trim()}`;
   state.packageId = order.package?.id || "";
   state.addons = {};
   (order.addons || []).forEach((addon) => {
@@ -1290,7 +1291,7 @@ function assign(bind, value) {
 }
 
 function typedKey() {
-  return `${state.draft.line.trim().toLowerCase()}|${digits(state.draft.zip)}`;
+  return `${state.draft.line.trim().toLowerCase()}|${state.draft.zip.trim()}`;
 }
 
 function refreshContinue() {
@@ -1316,8 +1317,8 @@ function scheduleLookup() {
 async function lookupNow() {
   clearTimeout(lookupTimer);
   const line = state.draft.line.trim();
-  const zip = digits(state.draft.zip);
-  if (line.length < 4 || zip.length !== 5) {
+  const zip = state.draft.zip.trim();
+  if (line.length < 4 || !zip) {
     state.lookupError = "Enter a street and ZIP to continue.";
     return "fail";
   }
@@ -1568,13 +1569,6 @@ async function submitCustomerOrder() {
   }
   state.errors = {};
   if (state.service) ensureBilling();
-  if (digits(state.billing.zip).length !== 5) {
-    state.errors.pay = "Enter the 5-digit ZIP.";
-    paint({ keepScroll: true });
-    const zipErr = document.querySelector(".err");
-    if (zipErr) zipErr.scrollIntoView({ block: "center" });
-    return;
-  }
   if (!billingReady()) {
     state.errors.pay = billingAddressReady() && paymentComplete()
       ? "Choose a payment date from the 5th to the 25th."
@@ -1767,9 +1761,6 @@ document.addEventListener("input", (event) => {
     el.value = d.length > 2 ? `${d.slice(0, 2)} / ${d.slice(2)}` : d;
     state.cardExp = el.value;
     return;
-  }
-  if (bind === "draft.zip" || bind.endsWith(".zip")) {
-    el.value = digits(el.value).slice(0, 5);
   }
   assign(bind, el.value);
   if (bind === "draft.line" || bind === "draft.zip") scheduleLookup();
