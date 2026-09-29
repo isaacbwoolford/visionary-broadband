@@ -684,8 +684,8 @@ function selectField(label, bind, value, options, placeholder) {
   return `<label class="lbl">${esc(label)}<select class="field" data-bind="${bind}">${opts}</select></label>`;
 }
 
-function addressStep(showNav = true) {
-  const map = state.service ? `
+function addressStep(showNav = true, showMap = true) {
+  const map = showMap && state.service ? `
     <div class="map-wrap">
       <div class="map-toggle">
         <button data-action="map-mode" data-mode="map" class="${state.mapMode === "map" ? "is-on" : ""}">Map</button>
@@ -1153,7 +1153,7 @@ function customerDetails() {
   if (state.service) ensureBilling();
   return `
     <h2 class="band">Service Address</h2>
-    ${addressStep(false)}
+    ${addressStep(false, false)}
     ${state.service ? `<div class="pad">${serviceSummary(true)}</div>` : ""}
     ${productStep(false, false)}
     ${hasVoice() ? voiceStep(false) : ""}
