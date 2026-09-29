@@ -25,9 +25,11 @@
       <button type="submit" id="submit">Sign in</button>
     </form>
   </main>
-  <script src="/auth.js?v=20260929f"></script>
+  <script src="/orders/new/config.js?v=20260928d"></script>
+  <script src="/auth.js?v=20260929g"></script>
   <script>
     if (vbSessionValid()) location.replace("/orders/new/");
+    if (vbCustomerSession()) location.replace("/orders/customer/");
 
     document.getElementById("login").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -41,6 +43,13 @@
         location.replace("/orders/new/");
         return;
       }
+      try {
+        const order = await vbCustomerSignIn(form.name.value, form.password.value);
+        if (order) {
+          location.replace("/orders/customer/");
+          return;
+        }
+      } catch { /* show the same mismatch message */ }
       error.textContent = "That name and password don't match.";
       button.disabled = false;
       form.password.focus();

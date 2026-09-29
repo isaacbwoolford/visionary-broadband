@@ -174,6 +174,8 @@ function fresh() {
     overrideOpen: false,
     lookupToken: 0,
     saving: false,
+    login: {},
+    customerEditing: false,
   };
 }
 
@@ -335,9 +337,14 @@ function customerReady() {
   return state.contacts.every((c) => c.name.trim() && c.email.includes("@") && digits(c.phone).length >= 10 && c.smsAccount && c.smsMarketing);
 }
 
-function billingReady() {
+function billingAddressReady() {
   if (!state.billing.line.trim() || !state.billing.city.trim() || !state.billing.zip.trim()) return false;
   if (!state.mailingSame && (!state.mailing.line.trim() || !state.mailing.city.trim() || !state.mailing.zip.trim())) return false;
+  return true;
+}
+
+function billingReady() {
+  if (!billingAddressReady()) return false;
   if (state.payMethod === "card") {
     return state.cardName.trim() && digits(state.cardNumber).length >= 13 && digits(state.cardExp).length >= 6;
   }
@@ -398,7 +405,7 @@ function buildOrder() {
     tempFiberDrop: state.tempFiberDrop || "Unspecified",
     referredBy: state.referredBy,
     contacts: state.contacts.map((c) => ({ ...c })),
-    payMethod: state.payMethod === "card" ? "Credit Card" : "ACH",
+    payMethod: state.payMethod === "ach" ? "ACH" : state.payMethod === "card" ? "Credit Card" : "Not entered yet",
     autopay: state.autopay ? "Yes" : "No",
     billing: { ...state.billing },
     salesNotes: state.salesNotes.trim(),
@@ -417,8 +424,8 @@ function orderRow(order) {
   const street = service.unit ? `${service.line}, Unit ${service.unit}` : service.line;
   const address = [street, service.city, `${region} ${service.zip || ""}`.trim()].filter(Boolean).join(", ");
   const payload = { ...order };
-  ["cardNumber", "cardCvv", "cardExp", "cardName", "achAccount", "achRouting", "achName"].forEach((key) => delete payload[key]);
-  return {
+  ["cardNumber", "cardCvv", "cardExp", "cardName", "achAccount", "achRouting", "achName", "payment"].forEach((key) => delete payload[key]);
+  const row = {
     order_number: order.number,
     source: "visionary-broadband",
     account_name: order.accountName,
@@ -429,9 +436,10 @@ function orderRow(order) {
     package_name: order.package ? order.package.name : null,
     month1: order.pricing ? order.pricing.month1 : null,
     monthly: order.pricing ? order.pricing.monthly : null,
-    payment: order.payment,
     payload,
   };
+  if (order.payment) row.payment = order.payment;
+  return row;
 }
 
 function bytesToBase64(bytes) {
@@ -533,7 +541,7 @@ function paint(options = {}) {
       }
     }
   }
-  if (state.screen === "flow" && state.service && document.getElementById("map")) mountMap();
+  if ((state.screen === "flow" || state.customerEditing) && state.service && document.getElementById("map")) mountMap();
   document.title = state.screen === "result" && state.order
     ? `Order #${state.order.number} · Visionary Broadband`
     : "Visionary Broadband";
@@ -568,6 +576,8 @@ function header() {
 }
 
 function body() {
+  if (state.screen === "congrats") return congratsView();
+  if (state.screen === "customer") return customerView();
   if (state.screen === "orders") return ordersView();
   if (state.screen === "result") return resultView(state.order);
   return flowView();
@@ -603,7 +613,7 @@ function isaacFlowView() {
         ${productStep(false, false)}
         ${hasVoice() ? voiceStep(false) : ""}
         ${customerStep(false, false)}
-        ${billingStep(false, false)}
+        ${billingStep(false, false, false)}
         ${disclosureBlock()}
         <div class="btn-row single">
           <button class="btn btn-gold btn-wide" data-action="submit-order" ${state.saving ? "disabled" : ""}>${state.saving ? "Saving…" : "Submit Order"}</button>
@@ -841,8 +851,7 @@ function addressFields(prefix, data) {
     ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5"')}`;
 }
 
-function billingStep(showNav = true, showSummary = true) {
-  ensureBilling();
+function paymentBlock() {
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
     ${field("Card Number", "cardNumber", state.cardNumber, 'inputmode="numeric" placeholder="#### #### #### ####"')}
@@ -854,15 +863,21 @@ function billingStep(showNav = true, showSummary = true) {
     ${selectField("Account Type", "achType", state.achType, ["Checking", "Savings"])}
   `;
   return `
-    ${showSummary ? `<div class="pad">${serviceSummary(false)}</div>` : ""}
     <h2 class="band">Payment Method</h2>
     <div class="pad stack">
       <button class="choice" data-action="choice" data-bind="payMethod" data-value="card"><span class="radio ${state.payMethod === "card" ? "is-on" : ""}"></span> Credit Card</button>
-      <button class="choice" data-action="choice" data-bind="payMethod" data-value="ach"><span class="radio ${state.payMethod === "ach" ? "is-on" : ""}"></span> ACH</button>
+      <button class="choice" data-action="choice" data-bind="payMethod" data-value="ach"><span class="radio ${state.payMethod === "ach" ? "is-on" : ""}"></span> Account number</button>
       ${pay}
       ${state.errors.pay ? `<p class="err">${esc(state.errors.pay)}</p>` : ""}
       <button class="choice" data-action="autopay"><span class="check ${state.autopay ? "is-on" : ""}"></span> Turn on automatic payment</button>
-    </div>
+    </div>`;
+}
+
+function billingStep(showNav = true, showSummary = true, showPayment = true) {
+  ensureBilling();
+  return `
+    ${showSummary ? `<div class="pad">${serviceSummary(false)}</div>` : ""}
+    ${showPayment ? paymentBlock() : ""}
     <h2 class="band">Billing Address</h2>
     <div class="pad stack fields-2">${addressFields("billing", state.billing)}</div>
     <h2 class="band">Mailing Address</h2>
@@ -1016,6 +1031,7 @@ function summaryHTML(order, opts) {
       <div><div class="k">Authorizes Fiber-drop?</div><div class="v">${esc(order.fiberDrop)}</div></div>
       <div><div class="k">Authorizes Temporary Fiber-drop?</div><div class="v">${esc(order.tempFiberDrop)}</div></div>
       <div><div class="k">Referred By</div><div class="v">${esc(order.referredBy)}</div></div>
+      ${order.installDate || order.installTime ? `<div><div class="k">Installation</div><div class="v">${esc(formatInstall(order))}</div></div>` : ""}
     </div>
     </section>
     <section class="panel wide">
@@ -1064,12 +1080,142 @@ function summaryHTML(order, opts) {
 
 function ordersView() {
   const orders = loadOrders();
-  const cards = orders.length ? orders.map((order) => `
-    <button class="order-card" data-action="open-order" data-number="${esc(order.number)}">
-      <strong>Order #${esc(order.number)} · ${esc(order.accountName)}</strong>
-      <span>${esc(addressLine(order.service, order.service.unit))}</span>
-    </button>`).join("") : `<p class="empty">No orders yet. Start a new order to see it here.</p>`;
+  const cards = orders.length ? orders.map((order) => {
+    const login = (state.login && state.login[order.number]) || {};
+    return `
+    <article class="order-card">
+      <button class="order-open" data-action="open-order" data-number="${esc(order.number)}">
+        <strong>Order #${esc(order.number)} · ${esc(order.accountName)}</strong>
+        <span>${order.service ? esc(addressLine(order.service, order.service.unit)) : ""}</span>
+      </button>
+      <div class="order-access">
+        <label class="lbl">Customer username<input class="field" data-bind="login.${esc(order.number)}.username" value="${esc(login.username || order.customerUsername || "")}" autocomplete="off"></label>
+        <label class="lbl">Customer password<input class="field" type="password" data-bind="login.${esc(order.number)}.password" value="${esc(login.password || "")}" autocomplete="new-password"></label>
+        <div class="btn-row">
+          <button class="btn btn-gold" data-action="save-login" data-number="${esc(order.number)}">Save login</button>
+          <button class="btn btn-slate" data-action="copy" data-text="https://visionary-broadband.com/orders">Copy customer link</button>
+        </div>
+        ${order.customerUsername ? `<p class="fine">Customer username: ${esc(order.customerUsername)}</p>` : ""}
+        ${state.errors[`login-${order.number}`] ? `<p class="err">${esc(state.errors[`login-${order.number}`])}</p>` : ""}
+      </div>
+    </article>`;
+  }).join("") : `<p class="empty">No orders yet. Start a new order to see it here.</p>`;
   return `<div class="workspace orders-layout"><div class="page-head"><h1>Orders</h1></div><div class="order-list">${cards}</div></div>`;
+}
+
+function formatInstall(order) {
+  if (!order) return "a time we'll confirm with you";
+  let dateText = order.installDate || "";
+  if (order.installDate) {
+    const parsed = new Date(`${order.installDate}T12:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      dateText = parsed.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    }
+  }
+  if (dateText && order.installTime) return `${dateText} at ${order.installTime}`;
+  if (dateText) return dateText;
+  if (order.installTime) return order.installTime;
+  return "a time we'll confirm with you";
+}
+
+function installOffer() {
+  return `
+    <section class="panel">
+      <h2 class="band">Installation</h2>
+      <div class="pad install-cost">
+        <div><div class="k">Installation cost</div><div class="v">Free</div></div>
+        <p>No charge installation.</p>
+      </div>
+    </section>`;
+}
+
+function customerDetails() {
+  syncVoiceLines();
+  if (state.service) ensureBilling();
+  return `
+    <h2 class="band">Service Address</h2>
+    ${addressStep(false)}
+    ${state.service ? `<div class="pad">${serviceSummary(true)}</div>` : ""}
+    ${productStep(false, false)}
+    ${hasVoice() ? voiceStep(false) : ""}
+    ${customerStep(false, false)}
+    ${billingStep(false, false, false)}
+  `;
+}
+
+function customerView() {
+  const order = {
+    addons: [],
+    lines: [],
+    contacts: [],
+    pricing: { month1: 0, month2: 0, onetime: 0, portCount: 0 },
+    ...(state.order || {}),
+  };
+  return `
+    <div class="workspace one-page">
+      <div class="edit-bar">
+        <h1>Your order</h1>
+        <button class="edit-btn" data-action="toggle-edit">${state.customerEditing ? "Done" : "Edit"}</button>
+      </div>
+      <div class="stage">
+        ${state.customerEditing ? customerDetails() : `<div class="summary-board">${summaryHTML(order, { review: true })}</div>`}
+        ${installOffer()}
+        ${paymentBlock()}
+        ${state.errors.submit ? `<div class="pad"><p class="err">${esc(state.errors.submit)}</p></div>` : ""}
+        <div class="btn-row single">
+          <button class="btn btn-gold btn-wide" data-action="customer-submit" ${state.saving ? "disabled" : ""}>${state.saving ? "Saving…" : "Submit"}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function congratsView() {
+  const when = formatInstall(state.order);
+  return `
+    <div class="workspace result-layout">
+      <div class="page-head"><h1>Congratulations</h1></div>
+      <div class="pad congrats">
+        <p>Congratulations, your order is submitted.</p>
+        <p>We will get you installed on ${esc(when)}.</p>
+      </div>
+    </div>`;
+}
+
+function applyOrder(order) {
+  state.accountName = order.accountName || "";
+  state.service = order.service || null;
+  state.draft = {
+    line: order.service?.line || "",
+    unit: order.service?.unit || "",
+    zip: order.service?.zip || "",
+    serviceType: order.service?.serviceType || "Residential",
+  };
+  state.serviceKey = `${state.draft.line.trim().toLowerCase()}|${digits(state.draft.zip)}`;
+  state.packageId = order.package?.id || "";
+  state.addons = {};
+  (order.addons || []).forEach((addon) => {
+    const match = ADDONS.find((item) => item.name === addon.name);
+    if (match) state.addons[match.id] = addon.qty;
+  });
+  state.voiceLines = (order.lines || []).map((line) => ({ ...line }));
+  state.contacts = order.contacts?.length ? order.contacts.map((contact) => ({ ...contact })) : [blankContact()];
+  state.mailingSame = order.mailingSame !== false;
+  state.mailing = { line: "", unit: "", city: "", region: "Colorado", zip: "", ...(order.mailing || {}) };
+  state.rentOrOwn = order.rentOrOwn || "";
+  state.onSite = order.onSite || "No";
+  state.fiberDrop = order.fiberDrop || "";
+  state.tempFiberDrop = order.tempFiberDrop || "";
+  state.referredBy = order.referredBy || "";
+  state.billing = { line: "", unit: "", city: "", region: "Colorado", zip: "", ...(order.billing || {}) };
+  state.billingReady = true;
+  state.salesNotes = order.salesNotes || "";
+  state.installNotes = order.installNotes || "";
+  state.installDate = order.installDate || "";
+  state.installTime = order.installTime || "";
+  state.promo = !!order.promo;
+  state.disclosures = { ...(order.disclosures || {}) };
+  state.payMethod = "card";
+  state.order = order;
 }
 
 function modals() {
@@ -1117,7 +1263,10 @@ window.addEventListener("resize", () => { if (map) map.invalidateSize(); });
 function setBind(path, value) {
   const parts = path.split(".");
   let obj = state;
-  for (let i = 0; i < parts.length - 1; i += 1) obj = obj[parts[i]];
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    if (obj[parts[i]] == null || typeof obj[parts[i]] !== "object") obj[parts[i]] = {};
+    obj = obj[parts[i]];
+  }
   obj[parts[parts.length - 1]] = value;
 }
 
@@ -1281,8 +1430,8 @@ async function submitOnePage() {
     ok = false;
   }
   if (state.service) ensureBilling();
-  if (!billingReady()) {
-    state.errors.pay = "Enter the payment and billing details to continue.";
+  if (!billingAddressReady()) {
+    state.errors.pay = "Enter the billing address to continue.";
     ok = false;
   }
   if (!disclosuresReady()) {
@@ -1295,21 +1444,27 @@ async function submitOnePage() {
     if (err) err.scrollIntoView({ block: "center" });
     return;
   }
-  await saveCurrentOrder();
+  await saveCurrentOrder({ payment: false });
 }
 
-async function saveCurrentOrder() {
-  if (!disclosuresReady() || state.saving) return;
+async function saveCurrentOrder({ payment = true } = {}) {
+  if (state.saving) return;
+  if (payment && !disclosuresReady()) return;
   state.voiceLines.forEach((line) => {
     if (line.porting && !line.portId) line.portId = `#${100 + Math.floor(Math.random() * 900)}`;
   });
   const order = buildOrder();
   order.lines = state.voiceLines.map((line) => ({ ...line }));
+  if (!payment) {
+    order.payment = null;
+    order.payMethod = "Not entered yet";
+    order.autopay = "No";
+  }
   state.saving = true;
   state.errors.submit = "";
   paint({ keepScroll: true });
   try {
-    order.payment = await encryptPayment();
+    if (payment) order.payment = await encryptPayment();
     await saveOrderToSupabase(order);
   } catch {
     state.saving = false;
@@ -1317,7 +1472,7 @@ async function saveCurrentOrder() {
     paint({ keepScroll: true });
     return;
   }
-  wipePaymentSecrets();
+  if (payment) wipePaymentSecrets();
   state.saving = false;
   saveOrderRecord(order);
   state.order = order;
@@ -1325,6 +1480,105 @@ async function saveCurrentOrder() {
   state.menu = false;
   paint();
   window.scrollTo(0, 0);
+}
+
+async function openOrders() {
+  state.screen = "orders";
+  state.menu = false;
+  paint();
+  window.scrollTo(0, 0);
+  try {
+    const remote = await vbRpc("list_staff_orders", { p_staff_token: vbSession()?.token || "" });
+    if (!Array.isArray(remote) || state.screen !== "orders") return;
+    const local = loadOrders();
+    const seen = new Set();
+    const merged = [];
+    remote.forEach((order) => {
+      seen.add(String(order.number));
+      merged.push(order);
+    });
+    local.forEach((order) => {
+      if (!seen.has(String(order.number))) merged.push(order);
+    });
+    localStorage.setItem("vb-orders", JSON.stringify(merged));
+    if (state.screen === "orders") paint();
+  } catch { /* the orders already on this computer still show */ }
+}
+
+function loginError(error) {
+  const text = String(error && error.message || "");
+  if (text.includes("at least 4")) return "Enter a username and a password of at least 4 characters.";
+  if (text.includes("23505") || text.includes("customer_username")) return "That username is already used on another order.";
+  if (text.includes("not found")) return "Save the order first, then set the login.";
+  return "Couldn't save that login. Try again.";
+}
+
+async function saveCustomerLogin(number) {
+  const login = (state.login && state.login[number]) || {};
+  const username = String(login.username || "").trim();
+  const password = login.password || "";
+  state.errors[`login-${number}`] = "";
+  try {
+    await vbRpc("set_customer_login", {
+      p_staff_token: vbSession()?.token || "",
+      p_order_number: number,
+      p_username: username,
+      p_password: password,
+    });
+    const order = loadOrders().find((item) => item.number === number);
+    if (order) {
+      order.customerUsername = username.toLowerCase();
+      saveOrderRecord(order);
+    }
+    state.toast = "Customer login saved.";
+  } catch (error) {
+    state.errors[`login-${number}`] = loginError(error);
+  }
+  if (state.screen === "orders") paint({ keepScroll: true });
+}
+
+async function submitCustomerOrder() {
+  const session = vbCustomerSession();
+  if (!session) {
+    location.replace("/orders/");
+    return;
+  }
+  state.errors = {};
+  if (state.service) ensureBilling();
+  if (!billingReady()) {
+    state.errors.pay = "Enter the payment and billing details to continue.";
+    paint({ keepScroll: true });
+    const err = document.querySelector(".err");
+    if (err) err.scrollIntoView({ block: "center" });
+    return;
+  }
+  state.saving = true;
+  state.errors.submit = "";
+  paint({ keepScroll: true });
+  try {
+    const payment = await encryptPayment();
+    const order = buildOrder();
+    order.number = state.order.number;
+    delete order.payment;
+    await vbRpc("submit_customer_payment", {
+      p_username: session.username,
+      p_token: session.token,
+      p_payload: order,
+      p_payment: payment,
+    });
+    wipePaymentSecrets();
+    state.saving = false;
+    state.order = { ...order, submitted: true };
+    state.screen = "congrats";
+    session.order = state.order;
+    sessionStorage.setItem("vb-customer", JSON.stringify(session));
+    paint();
+    window.scrollTo(0, 0);
+  } catch {
+    state.saving = false;
+    state.errors.submit = "Couldn't save this order. Check your connection and try again.";
+    paint({ keepScroll: true });
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -1344,6 +1598,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action === "home" || action === "new-order") {
+    if (!vbIsIsaac()) return;
     state = fresh();
     paint();
     window.scrollTo(0, 0);
@@ -1351,10 +1606,7 @@ document.addEventListener("click", (event) => {
   }
   if (action === "orders") {
     if (!vbIsIsaac()) return;
-    state.screen = "orders";
-    state.menu = false;
-    paint();
-    window.scrollTo(0, 0);
+    openOrders();
     return;
   }
   if (action === "open-order") {
@@ -1372,6 +1624,24 @@ document.addEventListener("click", (event) => {
   }
   if (action === "next" || action === "continue") { advance(); return; }
   if (action === "submit-order") { submitOnePage(); return; }
+  if (action === "customer-submit") { submitCustomerOrder(); return; }
+  if (action === "save-login") { saveCustomerLogin(el.dataset.number); return; }
+  if (action === "toggle-edit") {
+    if (state.customerEditing && state.order) {
+      const number = state.order.number;
+      const payMethod = state.order.payMethod;
+      const autopay = state.order.autopay;
+      const next = buildOrder();
+      next.number = number;
+      next.payMethod = payMethod || "Not entered yet";
+      next.autopay = autopay || "No";
+      delete next.payment;
+      state.order = next;
+    }
+    state.customerEditing = !state.customerEditing;
+    paint({ keepScroll: true });
+    return;
+  }
   if (action === "back") { go(prevIndex(state.step)); return; }
   if (action === "ask-cancel") { state.confirmCancel = true; paint({ keepScroll: true }); return; }
   if (action === "keep") { state.confirmCancel = false; paint({ keepScroll: true }); return; }
@@ -1503,6 +1773,18 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  const customerPage = location.pathname.includes("/orders/customer");
+  if (customerPage) {
+    const session = typeof vbCustomerSession === "function" ? vbCustomerSession() : null;
+    if (!session || !session.order) {
+      location.replace("/orders/");
+      return;
+    }
+    applyOrder(session.order);
+    state.screen = session.order.submitted ? "congrats" : "customer";
+    paint();
+    return;
+  }
   if (typeof vbSessionValid !== "function" || !vbSessionValid()) {
     location.replace("/orders/");
     return;
