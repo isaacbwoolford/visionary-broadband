@@ -1170,23 +1170,36 @@ function customerView() {
 }
 
 function congratsView() {
+  const order = state.order || {};
   const when = formatInstall(state.order);
+  let dateText = "";
+  if (order.installDate) {
+    const parsed = new Date(`${order.installDate}T12:00:00`);
+    dateText = Number.isNaN(parsed.getTime())
+      ? order.installDate
+      : parsed.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  }
+  const timeText = order.installTime || "";
+  const schedule = `
+    ${dateText ? `<p class="confirm-date"><span class="confirm-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3.5v3M16 3.5v3M4 10h16"></path></svg></span><span>${esc(dateText)}</span></p>` : ""}
+    ${timeText ? `<p class="confirm-time"><span class="confirm-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4.5l3 2"></path></svg></span><span>${esc(timeText)}</span></p>` : ""}`;
   return `
-    <div class="workspace one-page">
-      <div class="edit-bar"><h1>Congratulations</h1></div>
-      <div class="stage">
-        <div class="summary-board">
-          <section class="panel wide">
-            <h2 class="band">Order submitted</h2>
-            <div class="pad congrats">
-              <p>Congratulations, your order is submitted.</p>
-              <p>An email will come to your inbox today with more information about your account.</p>
-              <div class="k">Installation</div>
-              <div class="v">We will get you installed on ${esc(when)}.</div>
-            </div>
-          </section>
-        </div>
-      </div>
+    <div class="confirm-page">
+      <main class="confirm">
+        <section class="confirm-card confirm-success" aria-labelledby="confirm-title">
+          <div class="confirm-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7.5"></path></svg>
+          </div>
+          <h1 id="confirm-title">Order Confirmed</h1>
+          <p class="confirm-lead">Congratulations, your order is submitted.</p>
+          <p class="confirm-note">An email will come to your inbox today with more information about your account.</p>
+        </section>
+        <section class="confirm-card confirm-install" aria-labelledby="install-title">
+          <h2 id="install-title">Installation Details</h2>
+          ${schedule}
+          <p class="confirm-aside">We will get you installed on ${esc(when)}.</p>
+        </section>
+      </main>
     </div>`;
 }
 

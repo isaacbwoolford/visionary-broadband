@@ -684,9 +684,118 @@ select.field {
 .edit-btn::before { content: "✎"; }
 .install-cost .v { font-size: 22px; font-weight: 750; color: #0f7a3a; }
 .install-cost p { margin: 8px 0 0; }
-.congrats { font-size: 18px; line-height: 1.5; }
-.congrats p { margin: 0 0 16px; }
-.congrats .v { font-size: 18px; }
+.confirm-page {
+  background: #f4f5f7;
+  min-height: calc(100vh - 64px);
+  padding: 28px 16px 48px;
+}
+.confirm {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+.confirm-card {
+  background: #fff;
+  border: 1px solid #e3e7ec;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 28, 40, 0.04), 0 8px 24px rgba(20, 28, 40, 0.04);
+}
+.confirm-success {
+  text-align: center;
+  padding: 36px 24px 32px;
+}
+.confirm-mark {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: #f8f1d8;
+  border: 1px solid #ead48a;
+  color: #7a5d0c;
+  display: grid;
+  place-items: center;
+}
+.confirm-mark svg { width: 26px; height: 26px; display: block; }
+.confirm-success h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.confirm-lead {
+  margin: 12px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.confirm-note {
+  margin: 8px auto 0;
+  max-width: 42ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #5c6773;
+}
+.confirm-install {
+  border-left: 3px solid var(--gold);
+  padding: 22px 22px 20px 23px;
+}
+.confirm-install h2 {
+  margin: 0 0 16px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.confirm-date,
+.confirm-time {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--ink);
+}
+.confirm-date {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.confirm-time {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.confirm-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f8f1d8;
+  color: #7a5d0c;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.confirm-ico svg { width: 18px; height: 18px; display: block; }
+.confirm-aside {
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.5;
+  color: #5c6773;
+}
+@media (min-width: 960px) {
+  .confirm-page { padding: 56px 24px 80px; }
+  .confirm { gap: 18px; }
+  .confirm-success { padding: 44px 40px 36px; }
+  .confirm-success h1 { font-size: 30px; }
+  .confirm-install { padding: 26px 32px 24px 29px; }
+  .confirm-date { font-size: 26px; }
+  .confirm-time { font-size: 22px; }
+}
 
 .autopay-row {
   display: flex;
