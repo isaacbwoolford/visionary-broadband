@@ -56,6 +56,24 @@ button { cursor: pointer; }
   object-fit: contain;
   object-position: left center;
 }
+.header-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.menu-wrap { position: relative; }
+.logout-btn {
+  border: 1px solid rgba(255,255,255,.28);
+  background: transparent;
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 36px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.logout-btn:hover { background: rgba(255,255,255,.08); }
 .menu-btn {
   width: 42px;
   height: 36px;
@@ -75,8 +93,8 @@ button { cursor: pointer; }
 }
 .menu-panel {
   position: absolute;
-  top: 56px;
-  right: 12px;
+  top: 44px;
+  right: 0;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 12px 40px rgba(0,0,0,.18);
@@ -545,7 +563,7 @@ select.field {
   .app { width: 100%; min-height: 100vh; background: #fff; box-shadow: none; }
   .header { position: sticky; top: 0; z-index: 30; padding: 0 28px; }
   .logo, .logo img { height: 46px; max-width: none; }
-  .menu-btn { display: none; }
+  .menu-wrap { display: none; }
   .desk-nav { display: flex; gap: 8px; }
   .desk-nav button {
     background: transparent;

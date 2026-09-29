@@ -549,15 +549,21 @@ function header() {
       <div class="brand">
         <button class="logo" data-action="home" aria-label="Visionary Broadband"><img src="logo.png?v=3" alt=""></button>
       </div>
-      <nav class="desk-nav">
-        <button data-action="new-order">New Order</button>
-        <button data-action="orders">Orders</button>
-      </nav>
-      <button class="menu-btn" data-action="menu" aria-label="Menu"><span></span><span></span><span></span></button>
-      ${state.menu ? `<div class="menu-panel">
-        <button data-action="new-order">New Order</button>
-        <button data-action="orders">Orders</button>
-      </div>` : ""}
+      <div class="header-end">
+        ${vbIsIsaac() ? `
+        <nav class="desk-nav">
+          <button data-action="new-order">New Order</button>
+          <button data-action="orders">Orders</button>
+        </nav>
+        <div class="menu-wrap">
+          <button class="menu-btn" data-action="menu" aria-label="Menu"><span></span><span></span><span></span></button>
+          ${state.menu ? `<div class="menu-panel">
+            <button data-action="new-order">New Order</button>
+            <button data-action="orders">Orders</button>
+          </div>` : ""}
+        </div>` : ""}
+        <button class="logout-btn" data-action="logout">Logout</button>
+      </div>
     </header>`;
 }
 
@@ -1246,6 +1252,10 @@ document.addEventListener("click", (event) => {
     return;
   }
   const action = el.dataset.action;
+  if (action === "logout") {
+    vbLogout();
+    return;
+  }
   if (action === "menu") {
     state.menu = !state.menu;
     paint({ keepScroll: true });
@@ -1258,6 +1268,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action === "orders") {
+    if (!vbIsIsaac()) return;
     state.screen = "orders";
     state.menu = false;
     paint();
@@ -1265,6 +1276,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action === "open-order") {
+    if (!vbIsIsaac()) return;
     state.order = loadOrders().find((order) => order.number === el.dataset.number) || null;
     state.screen = "result";
     paint();

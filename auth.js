@@ -24,12 +24,26 @@ async function vbSignIn(name, password) {
   return true;
 }
 
-function vbSessionValid() {
+function vbLogout() {
+  sessionStorage.removeItem(VB_AUTH_KEY);
+  location.replace("/");
+}
+
+function vbSession() {
   try {
     const session = JSON.parse(sessionStorage.getItem(VB_AUTH_KEY) || "null");
-    if (!session) return false;
-    return VB_ACCOUNTS.some((item) => item.name === session.name && item.token === session.token);
+    if (!session) return null;
+    const match = VB_ACCOUNTS.some((item) => item.name === session.name && item.token === session.token);
+    return match ? session : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+function vbSessionValid() {
+  return !!vbSession();
+}
+
+function vbIsIsaac() {
+  return vbSession()?.name === "isaac woolford";
 }
