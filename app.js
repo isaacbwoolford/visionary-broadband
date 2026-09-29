@@ -459,13 +459,15 @@ function importPaymentKey() {
 }
 
 async function encryptPayment() {
+  const zip = digits(state.billing.zip).slice(0, 5);
   const secret = state.payMethod === "card"
-    ? { cardName: state.cardName.trim(), cardNumber: digits(state.cardNumber), cardExp: state.cardExp.trim() }
+    ? { cardName: state.cardName.trim(), cardNumber: digits(state.cardNumber), cardExp: state.cardExp.trim(), zip }
     : {
       achName: state.achName.trim(),
       achRouting: digits(state.achRouting),
       achAccount: digits(state.achAccount),
       achType: state.achType,
+      zip,
     };
   const plain = new TextEncoder().encode(JSON.stringify(secret));
   const publicKey = await importPaymentKey();
