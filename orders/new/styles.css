@@ -433,6 +433,8 @@ select.field {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+.total-row {
   padding: 4px 0;
 }
 .fine {
