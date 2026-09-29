@@ -155,7 +155,6 @@ function fresh() {
     cardName: "",
     cardNumber: "",
     cardExp: "",
-    cardCvv: "",
     achName: "",
     achRouting: "",
     achAccount: "",
@@ -340,7 +339,7 @@ function billingReady() {
   if (!state.billing.line.trim() || !state.billing.city.trim() || !state.billing.zip.trim()) return false;
   if (!state.mailingSame && (!state.mailing.line.trim() || !state.mailing.city.trim() || !state.mailing.zip.trim())) return false;
   if (state.payMethod === "card") {
-    return state.cardName.trim() && digits(state.cardNumber).length >= 13 && digits(state.cardExp).length >= 6 && digits(state.cardCvv).length >= 3;
+    return state.cardName.trim() && digits(state.cardNumber).length >= 13 && digits(state.cardExp).length >= 6;
   }
   return state.achName.trim() && digits(state.achRouting).length === 9 && digits(state.achAccount).length >= 4;
 }
@@ -487,7 +486,6 @@ async function encryptPayment() {
 
 function wipePaymentSecrets() {
   state.cardNumber = "";
-  state.cardCvv = "";
   state.cardExp = "";
   state.achRouting = "";
   state.achAccount = "";
@@ -813,7 +811,6 @@ function billingStep() {
     ${field("Name on Card", "cardName", state.cardName)}
     ${field("Card Number", "cardNumber", state.cardNumber, 'inputmode="numeric" placeholder="#### #### #### ####"')}
     ${field("Expiration (MM/YYYY)", "cardExp", state.cardExp, 'inputmode="numeric" placeholder="## / ####"')}
-    ${field("CVV/CVC", "cardCvv", state.cardCvv, 'inputmode="numeric" placeholder="###" maxlength="4"')}
   ` : `
     ${field("Name on Account", "achName", state.achName)}
     ${field("Routing Number", "achRouting", state.achRouting, 'inputmode="numeric" maxlength="9"')}
@@ -1387,11 +1384,6 @@ document.addEventListener("input", (event) => {
     const d = digits(el.value).slice(0, 6);
     el.value = d.length > 2 ? `${d.slice(0, 2)} / ${d.slice(2)}` : d;
     state.cardExp = el.value;
-    return;
-  }
-  if (bind === "cardCvv") {
-    el.value = digits(el.value).slice(0, 4);
-    state.cardCvv = el.value;
     return;
   }
   if (bind === "draft.zip" || bind.endsWith(".zip")) {
