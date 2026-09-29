@@ -609,6 +609,7 @@ select.field {
     box-shadow: none;
     min-width: 0;
   }
+  .workspace.one-page,
   .workspace.result-layout,
   .workspace.orders-layout {
     grid-template-columns: 1fr;
@@ -619,6 +620,8 @@ select.field {
     max-width: none;
     padding: 0 40px 48px;
   }
+  .one-page .page-head { grid-area: head; }
+  .one-page .stage { grid-area: stage; }
   .orders-layout .order-list { grid-area: stage; }
   .workspace.result-layout {
     grid-template-areas:

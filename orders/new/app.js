@@ -533,7 +533,7 @@ function paint(options = {}) {
       }
     }
   }
-  if (state.screen === "flow" && state.step === 0 && state.service) mountMap();
+  if (state.screen === "flow" && state.service && document.getElementById("map")) mountMap();
   document.title = state.screen === "result" && state.order
     ? `Order #${state.order.number} · Visionary Broadband`
     : "Visionary Broadband";
@@ -574,6 +574,7 @@ function body() {
 }
 
 function flowView() {
+  if (vbIsIsaac()) return isaacFlowView();
   const showCancel = state.step > 0;
   return `
     <div class="workspace">
@@ -583,6 +584,31 @@ function flowView() {
       </div>
       ${stepper()}
       <div class="stage">${stepContent()}</div>
+    </div>`;
+}
+
+function isaacFlowView() {
+  syncVoiceLines();
+  if (state.service) ensureBilling();
+  return `
+    <div class="workspace one-page">
+      <div class="page-head">
+        <h1>New Order</h1>
+        <button class="btn-cancel" data-action="ask-cancel">✕ Cancel Order</button>
+      </div>
+      <div class="stage">
+        <h2 class="band">Service Address</h2>
+        ${addressStep(false)}
+        ${state.service ? `<div class="pad">${serviceSummary(true)}</div>` : ""}
+        ${productStep(false, false)}
+        ${hasVoice() ? voiceStep(false) : ""}
+        ${customerStep(false, false)}
+        ${billingStep(false, false)}
+        ${disclosureBlock()}
+        <div class="btn-row single">
+          <button class="btn btn-gold btn-wide" data-action="submit-order" ${state.saving ? "disabled" : ""}>${state.saving ? "Saving…" : "Submit Order"}</button>
+        </div>
+      </div>
     </div>`;
 }
 
@@ -624,7 +650,7 @@ function selectField(label, bind, value, options, placeholder) {
   return `<label class="lbl">${esc(label)}<select class="field" data-bind="${bind}">${opts}</select></label>`;
 }
 
-function addressStep() {
+function addressStep(showNav = true) {
   const map = state.service ? `
     <div class="map-wrap">
       <div class="map-toggle">
@@ -644,7 +670,7 @@ function addressStep() {
       </div>
       ${map}
     </div>
-    <div class="btn-row single"><button class="btn btn-gold btn-wide" data-action="next">Next →</button></div>`;
+    ${showNav ? `<div class="btn-row single"><button class="btn btn-gold btn-wide" data-action="next">Next →</button></div>` : ""}`;
 }
 
 function serviceSummary(withOverride) {
@@ -667,7 +693,7 @@ function serviceSummary(withOverride) {
     </div>`;
 }
 
-function productStep() {
+function productStep(showNav = true, showSummary = true) {
   const packages = PACKAGES.map((pkg) => `
     <button class="package" data-action="package" data-id="${pkg.id}">
       <span class="radio ${state.packageId === pkg.id ? "is-on" : ""}"></span>
@@ -691,7 +717,7 @@ function productStep() {
       </div>`;
   }).join("");
   return `
-    <div class="pad">${serviceSummary(true)}</div>
+    ${showSummary ? `<div class="pad">${serviceSummary(true)}</div>` : ""}
     <h2 class="band">Available Packages</h2>
     <div class="pad package-list" style="padding-top:0">
       ${state.productError ? `<p class="err">${esc(state.productError)}</p>` : ""}
@@ -699,15 +725,16 @@ function productStep() {
     </div>
     <h2 class="band">Additional Products</h2>
     <div class="pad" style="padding-top:0">${addons}</div>
-    <div class="btn-row">
+    ${showNav ? `<div class="btn-row">
       <button class="btn btn-slate btn-lead" data-action="lead">Create Lead</button>
       <button class="btn btn-gold grow" data-action="continue">Continue →</button>
-    </div>`;
+    </div>` : `<div class="btn-row single"><button class="btn btn-slate btn-lead" data-action="lead">Create Lead</button></div>`}`;
 }
 
-function voiceStep() {
+function voiceStep(showNav = true) {
   syncVoiceLines();
   if (!state.voiceLines.length) {
+    if (!showNav) return "";
     return `
       <div class="pad"><p>No voice or fax lines are on this order.</p></div>
       ${navButtons(true)}`;
@@ -734,7 +761,7 @@ function voiceStep() {
       </div>
       ${field("Voicemail to email", `voice.${i}.vmEmail`, line.vmEmail, 'type="email"')}
     </div>`).join('<h2 class="band">Line</h2>');
-  return `<h2 class="band">Voice/Fax Lines</h2>${cards}${navButtons(true)}`;
+  return `<h2 class="band">Voice/Fax Lines</h2>${cards}${showNav ? navButtons(true) : ""}`;
 }
 
 function yesNo(bind, value, options) {
@@ -744,7 +771,7 @@ function yesNo(bind, value, options) {
     </button>`).join("")}</div>`;
 }
 
-function customerStep() {
+function customerStep(showNav = true, showSummary = true) {
   const contacts = state.contacts.map((c, i) => `
     <div class="stack fields-2">
       ${state.contacts.length > 1 ? `<button class="remove" data-action="remove-contact" data-index="${i}">Remove contact</button>` : ""}
@@ -761,9 +788,12 @@ function customerStep() {
       ${selectField("Preferred Contact Method", `contacts.${i}.preferred`, c.preferred, METHODS)}
     </div>`).join("");
   return `
-    <div class="pad">${serviceSummary(false)}</div>
+    ${showSummary ? `<div class="pad">${serviceSummary(false)}</div>` : ""}
     <h2 class="band">Account Information</h2>
-    <div class="pad">${field("Account Name", "accountName", state.accountName)}</div>
+    <div class="pad">
+      ${state.errors.customer ? `<p class="err">${esc(state.errors.customer)}</p>` : ""}
+      ${field("Account Name", "accountName", state.accountName)}
+    </div>
     <h2 class="band">Customer Contacts <button class="plus" data-action="add-contact" aria-label="Add contact">+</button></h2>
     <div class="pad stack">${contacts}</div>
     <h2 class="band">Additional Customer Questions</h2>
@@ -794,7 +824,7 @@ function customerStep() {
     <div class="pad"><textarea class="field" data-bind="salesNotes" placeholder="Any additional details regarding the customer sale?">${esc(state.salesNotes)}</textarea></div>
     <h2 class="band">Install Notes</h2>
     <div class="pad"><textarea class="field" data-bind="installNotes" placeholder="Directions for the install technician">${esc(state.installNotes)}</textarea></div>
-    ${navButtons(customerReady())}
+    ${showNav ? navButtons(customerReady()) : ""}
   `;
 }
 
@@ -811,7 +841,7 @@ function addressFields(prefix, data) {
     ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5"')}`;
 }
 
-function billingStep() {
+function billingStep(showNav = true, showSummary = true) {
   ensureBilling();
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
@@ -824,7 +854,7 @@ function billingStep() {
     ${selectField("Account Type", "achType", state.achType, ["Checking", "Savings"])}
   `;
   return `
-    <div class="pad">${serviceSummary(false)}</div>
+    ${showSummary ? `<div class="pad">${serviceSummary(false)}</div>` : ""}
     <h2 class="band">Payment Method</h2>
     <div class="pad stack">
       <button class="choice" data-action="choice" data-bind="payMethod" data-value="card"><span class="radio ${state.payMethod === "card" ? "is-on" : ""}"></span> Credit Card</button>
@@ -844,13 +874,12 @@ function billingStep() {
     <div class="pad">
       <button class="choice" data-action="promo"><span class="check ${state.promo ? "is-on" : ""}"></span> Fiber Promo - Project X $50 Credit (limited use)</button>
     </div>
-    ${navButtons(billingReady())}
+    ${showNav ? navButtons(billingReady()) : ""}
   `;
 }
 
-function reviewStep() {
+function disclosureBlock() {
   return `
-    ${summaryHTML(previewOrder(), { review: true })}
     <h2 class="band">Reviewed Disclosures</h2>
     <div class="pad">
       <div class="checks">
@@ -859,8 +888,14 @@ function reviewStep() {
             <span class="check ${state.disclosures[id] ? "is-on" : ""}"></span>${esc(label)}
           </button>`).join("")}
       </div>
-    </div>
-    ${state.errors.submit ? `<div class="pad"><p class="err">${esc(state.errors.submit)}</p></div>` : ""}
+      ${state.errors.submit ? `<p class="err">${esc(state.errors.submit)}</p>` : ""}
+    </div>`;
+}
+
+function reviewStep() {
+  return `
+    ${summaryHTML(previewOrder(), { review: true })}
+    ${disclosureBlock()}
     ${navButtons(disclosuresReady() && !state.saving, state.saving ? "Saving…" : "Submit Order")}
   `;
 }
@@ -1116,7 +1151,7 @@ function scheduleLookup() {
   lookupTimer = setTimeout(async () => {
     const status = await lookupNow();
     if (status === "stale") return;
-    if (state.screen === "flow" && state.step === 0) paint({ keepScroll: true });
+    if (state.screen === "flow" && (vbIsIsaac() || state.step === 0)) paint({ keepScroll: true });
   }, 400);
 }
 
@@ -1215,34 +1250,81 @@ async function advance() {
     go(5);
     return;
   }
-  if (state.step === 5) {
-    if (!disclosuresReady() || state.saving) return;
-    state.voiceLines.forEach((line) => {
-      if (line.porting && !line.portId) line.portId = `#${100 + Math.floor(Math.random() * 900)}`;
-    });
-    const order = buildOrder();
-    order.lines = state.voiceLines.map((line) => ({ ...line }));
-    state.saving = true;
-    state.errors.submit = "";
-    paint({ keepScroll: true });
-    try {
-      order.payment = await encryptPayment();
-      await saveOrderToSupabase(order);
-    } catch {
-      state.saving = false;
-      state.errors.submit = "Couldn't save this order. Check your connection and try again.";
-      paint({ keepScroll: true });
-      return;
-    }
-    wipePaymentSecrets();
-    state.saving = false;
-    saveOrderRecord(order);
-    state.order = order;
-    state.screen = "result";
-    state.menu = false;
-    paint();
-    window.scrollTo(0, 0);
+  if (state.step === 5) await saveCurrentOrder();
+}
+
+async function submitOnePage() {
+  state.errors = {};
+  state.productError = "";
+  let ok = true;
+  if (!state.service || state.serviceKey !== typedKey()) {
+    const status = await lookupNow();
+    if (status !== "ok") ok = false;
   }
+  if (!state.packageId) {
+    state.productError = "Select a package to continue.";
+    ok = false;
+  }
+  syncVoiceLines();
+  state.voiceLines.forEach((line, i) => {
+    if (line.porting && digits(line.number).length < 10) {
+      state.errors[`voice-${i}`] = "Enter the phone number to port.";
+      ok = false;
+    }
+  });
+  if (!customerReady()) {
+    state.errors.customer = "Enter the account name, referral, rent or own, and a complete contact.";
+    ok = false;
+  }
+  if (!state.fiberDrop) {
+    state.errors.fiberDrop = "Please answer the Authorize Fiber Drop question.";
+    ok = false;
+  }
+  if (state.service) ensureBilling();
+  if (!billingReady()) {
+    state.errors.pay = "Enter the payment and billing details to continue.";
+    ok = false;
+  }
+  if (!disclosuresReady()) {
+    state.errors.submit = "Review the disclosures before submitting.";
+    ok = false;
+  }
+  if (!ok) {
+    paint({ keepScroll: true });
+    const err = document.querySelector(".err");
+    if (err) err.scrollIntoView({ block: "center" });
+    return;
+  }
+  await saveCurrentOrder();
+}
+
+async function saveCurrentOrder() {
+  if (!disclosuresReady() || state.saving) return;
+  state.voiceLines.forEach((line) => {
+    if (line.porting && !line.portId) line.portId = `#${100 + Math.floor(Math.random() * 900)}`;
+  });
+  const order = buildOrder();
+  order.lines = state.voiceLines.map((line) => ({ ...line }));
+  state.saving = true;
+  state.errors.submit = "";
+  paint({ keepScroll: true });
+  try {
+    order.payment = await encryptPayment();
+    await saveOrderToSupabase(order);
+  } catch {
+    state.saving = false;
+    state.errors.submit = "Couldn't save this order. Check your connection and try again.";
+    paint({ keepScroll: true });
+    return;
+  }
+  wipePaymentSecrets();
+  state.saving = false;
+  saveOrderRecord(order);
+  state.order = order;
+  state.screen = "result";
+  state.menu = false;
+  paint();
+  window.scrollTo(0, 0);
 }
 
 document.addEventListener("click", (event) => {
@@ -1289,6 +1371,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (action === "next" || action === "continue") { advance(); return; }
+  if (action === "submit-order") { submitOnePage(); return; }
   if (action === "back") { go(prevIndex(state.step)); return; }
   if (action === "ask-cancel") { state.confirmCancel = true; paint({ keepScroll: true }); return; }
   if (action === "keep") { state.confirmCancel = false; paint({ keepScroll: true }); return; }
@@ -1421,7 +1504,7 @@ document.addEventListener("change", (event) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   if (typeof vbSessionValid !== "function" || !vbSessionValid()) {
-    location.replace("/");
+    location.replace("/orders/");
     return;
   }
   paint();

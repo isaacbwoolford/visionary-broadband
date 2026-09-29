@@ -2,49 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Sign in · Visionary Broadband</title>
-  <link rel="icon" href="/orders/favicon.svg?v=20260928g" type="image/svg+xml">
-  <link rel="stylesheet" href="login.css?v=20260928i">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visionary Broadband</title>
+  <link rel="canonical" href="https://visionary-broadband.com/orders/">
+  <meta http-equiv="refresh" content="0; url=/orders/">
+  <link rel="icon" href="/orders/new/favicon.svg?v=20260928g" type="image/svg+xml">
+  <script>location.replace("/orders/");</script>
 </head>
 <body>
-  <main class="card">
-    <div class="card-head">
-      <img src="/orders/logo.png?v=3" alt="Visionary Broadband">
-    </div>
-    <form id="login">
-      <div>
-        <label for="name">Name</label>
-        <input id="name" name="name" autocomplete="username" required>
-      </div>
-      <div>
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
-      </div>
-      <p class="err" id="error" role="alert"></p>
-      <button type="submit" id="submit">Sign in</button>
-    </form>
-  </main>
-  <script src="auth.js?v=20260929d"></script>
-  <script>
-    if (vbSessionValid()) location.replace("/orders/");
-
-    document.getElementById("login").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      const button = document.getElementById("submit");
-      const error = document.getElementById("error");
-      error.textContent = "";
-      button.disabled = true;
-      const ok = await vbSignIn(form.name.value, form.password.value);
-      if (ok) {
-        location.replace("/orders/");
-        return;
-      }
-      error.textContent = "That name and password don't match.";
-      button.disabled = false;
-      form.password.focus();
-    });
-  </script>
+  <p><a href="/orders/">Sign in</a></p>
 </body>
 </html>

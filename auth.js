@@ -26,7 +26,7 @@ async function vbSignIn(name, password) {
 
 function vbLogout() {
   sessionStorage.removeItem(VB_AUTH_KEY);
-  location.replace("/");
+  location.replace("/orders/");
 }
 
 function vbSession() {
