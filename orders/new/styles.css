@@ -621,6 +621,7 @@ select.field {
     width: 100%;
     max-width: none;
     padding: 0 40px 48px;
+    align-content: start;
   }
   .one-page .page-head { grid-area: head; }
   .one-page .stage { grid-area: stage; }
@@ -701,6 +702,7 @@ select.field {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 16px 0;
+  margin-bottom: 16px;
 }
 .edit-bar h1 { margin: 0; font-size: 22px; }
 .edit-btn {
@@ -718,7 +720,8 @@ select.field {
 .install-cost .v { font-size: 22px; font-weight: 750; color: #0f7a3a; }
 .install-cost p { margin: 8px 0 0; }
 .congrats { font-size: 18px; line-height: 1.5; }
-.congrats p { margin: 0 0 12px; }
+.congrats p { margin: 0 0 16px; }
+.congrats .v { font-size: 18px; }
 
 .autopay-row {
   display: flex;

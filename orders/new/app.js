@@ -1191,11 +1191,19 @@ function customerView() {
 function congratsView() {
   const when = formatInstall(state.order);
   return `
-    <div class="workspace result-layout">
-      <div class="page-head"><h1>Congratulations</h1></div>
-      <div class="pad congrats">
-        <p>Congratulations, your order is submitted.</p>
-        <p>We will get you installed on ${esc(when)}.</p>
+    <div class="workspace one-page">
+      <div class="edit-bar"><h1>Congratulations</h1></div>
+      <div class="stage">
+        <div class="summary-board">
+          <section class="panel wide">
+            <h2 class="band">Order submitted</h2>
+            <div class="pad congrats">
+              <p>Congratulations, your order is submitted.</p>
+              <div class="k">Installation</div>
+              <div class="v">We will get you installed on ${esc(when)}.</div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>`;
 }
