@@ -686,7 +686,7 @@ function addressStep(showNav = true) {
       <div class="stack">
         ${field("Address", "draft.line", state.draft.line, 'autocomplete="street-address"')}
         ${field("Unit #", "draft.unit", state.draft.unit)}
-        ${field("Zip", "draft.zip", state.draft.zip, 'inputmode="numeric" maxlength="5" autocomplete="off"')}
+        ${field("Zip", "draft.zip", state.draft.zip, 'inputmode="numeric" maxlength="5" autocomplete="off" placeholder=""')}
         ${state.lookupError ? `<p class="err">${esc(state.lookupError)}</p>` : ""}
         ${selectField("Service Type", "draft.serviceType", state.draft.serviceType, ["Residential", "Commercial", "Enterprise"])}
       </div>
@@ -847,17 +847,17 @@ function addressFields(prefix, data) {
     ${field("Apartment or Unit", `${prefix}.unit`, data.unit)}
     ${field("City", `${prefix}.city`, data.city)}
     <label class="lbl">State<select class="field" data-bind="${prefix}.region">${stateOptions(data.region)}</select></label>
-    ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5" autocomplete="off"')}`;
+    ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5" autocomplete="off" placeholder=""')}`;
 }
 
 function paymentBlock(optional = false, includeZip = false) {
   const zipField = includeZip
-    ? field("Zip", "billing.zip", state.billing.zip, 'inputmode="numeric" maxlength="5" autocomplete="off"')
+    ? field("Zip", "billing.zip", state.billing.zip, 'inputmode="numeric" maxlength="5" autocomplete="off" placeholder=""')
     : "";
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
-    ${field("Card Number", "cardNumber", state.cardNumber, 'inputmode="numeric" placeholder="#### #### #### ####"')}
-    ${field("Expiration (MM/YYYY)", "cardExp", state.cardExp, 'inputmode="numeric" placeholder="## / ####"')}
+    ${field("Card Number", "cardNumber", state.cardNumber, 'inputmode="numeric" autocomplete="off" placeholder=""')}
+    ${field("Expiration (MM/YYYY)", "cardExp", state.cardExp, 'inputmode="numeric" autocomplete="off" placeholder=""')}
     ${zipField}
   ` : `
     ${field("Name on Account", "achName", state.achName)}
