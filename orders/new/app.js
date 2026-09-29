@@ -397,7 +397,7 @@ function ensureBilling() {
     unit: state.draft.unit,
     city: state.service.city,
     region: state.service.region || "Colorado",
-    zip: state.service.zip,
+    zip: digits(state.billing.zip).length === 5 ? digits(state.billing.zip) : state.service.zip,
   };
   if (!state.cardName) state.cardName = state.accountName;
   if (!state.achName) state.achName = state.accountName;
@@ -873,16 +873,21 @@ function addressFields(prefix, data) {
     ${field("Zip", `${prefix}.zip`, data.zip, 'inputmode="numeric" maxlength="5"')}`;
 }
 
-function paymentBlock(optional = false) {
+function paymentBlock(optional = false, includeZip = false) {
+  const zipField = includeZip
+    ? field("Zip", "billing.zip", state.billing.zip, 'inputmode="numeric" maxlength="5" autocomplete="postal-code"')
+    : "";
   const pay = state.payMethod === "card" ? `
     ${field("Name on Card", "cardName", state.cardName)}
     ${field("Card Number", "cardNumber", state.cardNumber, 'inputmode="numeric" placeholder="#### #### #### ####"')}
     ${field("Expiration (MM/YYYY)", "cardExp", state.cardExp, 'inputmode="numeric" placeholder="## / ####"')}
+    ${zipField}
   ` : `
     ${field("Name on Account", "achName", state.achName)}
     ${field("Routing Number", "achRouting", state.achRouting, 'inputmode="numeric" maxlength="9"')}
     ${field("Account Number", "achAccount", state.achAccount, 'inputmode="numeric"')}
     ${selectField("Account Type", "achType", state.achType, ["Checking", "Savings"])}
+    ${zipField}
   `;
   return `
     <h2 class="band">Payment Method<span class="lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></h2>
@@ -1109,6 +1114,7 @@ function ordersView() {
           <button class="btn btn-gold" data-action="save-login" data-number="${esc(order.number)}">Save login</button>
           <button class="btn btn-slate" data-action="copy" data-text="https://visionary-broadband.com/orders">Copy customer link</button>
         </div>
+        <button class="order-delete" data-action="ask-delete" data-number="${esc(order.number)}">Delete order</button>
         ${order.customerUsername ? `<p class="fine">Customer username: ${esc(order.customerUsername)}</p>` : ""}
         ${state.errors[`login-${order.number}`] ? `<p class="err">${esc(state.errors[`login-${order.number}`])}</p>` : ""}
       </div>
@@ -1174,7 +1180,7 @@ function customerView() {
         <div class="summary-board">
           ${summaryHTML(order, { review: true })}
           ${installOffer()}
-          <section class="panel wide">${paymentBlock()}</section>
+          <section class="panel wide">${paymentBlock(false, true)}</section>
           <section class="panel wide">
             <h2 class="band">Install Notes</h2>
             <div class="pad"><textarea class="field" data-bind="installNotes" placeholder="Feel free to leave any notes for your installation technician">${esc(state.installNotes)}</textarea></div>
@@ -1199,6 +1205,7 @@ function congratsView() {
             <h2 class="band">Order submitted</h2>
             <div class="pad congrats">
               <p>Congratulations, your order is submitted.</p>
+              <p>An email will come to your inbox today with more information about your account.</p>
               <div class="k">Installation</div>
               <div class="v">We will get you installed on ${esc(when)}.</div>
             </div>
@@ -1256,6 +1263,16 @@ function modals() {
       <div class="btn-row" style="padding:0">
         <button class="btn btn-slate" data-action="keep">Keep editing</button>
         <button class="btn btn-cancel" data-action="confirm-cancel">Cancel Order</button>
+      </div>
+    </div></div>`);
+  }
+  if (state.confirmDelete) {
+    bits.push(`<div class="modal-back"><div class="sheet">
+      <h3>Delete order #${esc(state.confirmDelete)}?</h3>
+      <p>This removes the order. The customer will no longer be able to open it.</p>
+      <div class="btn-row" style="padding:0">
+        <button class="btn btn-slate" data-action="keep">Keep order</button>
+        <button class="btn btn-cancel" data-action="confirm-delete">Delete order</button>
       </div>
     </div></div>`);
   }
@@ -1578,6 +1595,27 @@ async function saveCustomerLogin(number) {
   if (state.screen === "orders") paint({ keepScroll: true });
 }
 
+async function deleteOrder(number) {
+  if (!number || !vbIsIsaac()) return;
+  state.confirmDelete = "";
+  state.errors[`login-${number}`] = "";
+  try {
+    await vbRpc("delete_staff_order", {
+      p_staff_token: vbSession()?.token || "",
+      p_order_number: number,
+    });
+  } catch {
+    state.errors[`login-${number}`] = "Couldn't delete that order. Try again.";
+    if (state.screen === "orders") paint({ keepScroll: true });
+    return;
+  }
+  const list = loadOrders().filter((item) => String(item.number) !== String(number));
+  localStorage.setItem("vb-orders", JSON.stringify(list));
+  if (state.login) delete state.login[number];
+  state.toast = `Order #${number} deleted.`;
+  if (state.screen === "orders") paint({ keepScroll: true });
+}
+
 async function submitCustomerOrder() {
   const session = vbCustomerSession();
   if (!session) {
@@ -1586,6 +1624,13 @@ async function submitCustomerOrder() {
   }
   state.errors = {};
   if (state.service) ensureBilling();
+  if (digits(state.billing.zip).length !== 5) {
+    state.errors.pay = "Enter the 5-digit ZIP.";
+    paint({ keepScroll: true });
+    const zipErr = document.querySelector(".err");
+    if (zipErr) zipErr.scrollIntoView({ block: "center" });
+    return;
+  }
   if (!billingReady()) {
     state.errors.pay = billingAddressReady() && paymentComplete()
       ? "Choose a payment date from the 5th to the 25th."
@@ -1669,9 +1714,16 @@ document.addEventListener("click", (event) => {
   if (action === "submit-order") { submitOnePage(); return; }
   if (action === "customer-submit") { submitCustomerOrder(); return; }
   if (action === "save-login") { saveCustomerLogin(el.dataset.number); return; }
+  if (action === "ask-delete") {
+    if (!vbIsIsaac()) return;
+    state.confirmDelete = el.dataset.number;
+    paint({ keepScroll: true });
+    return;
+  }
+  if (action === "confirm-delete") { deleteOrder(state.confirmDelete); return; }
   if (action === "back") { go(prevIndex(state.step)); return; }
   if (action === "ask-cancel") { state.confirmCancel = true; paint({ keepScroll: true }); return; }
-  if (action === "keep") { state.confirmCancel = false; paint({ keepScroll: true }); return; }
+  if (action === "keep") { state.confirmCancel = false; state.confirmDelete = ""; paint({ keepScroll: true }); return; }
   if (action === "confirm-cancel") { state = fresh(); paint(); window.scrollTo(0, 0); return; }
   if (action === "package") {
     state.packageId = el.dataset.id;

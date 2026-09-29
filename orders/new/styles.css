@@ -701,6 +701,15 @@ select.field {
 }
 .order-access { margin-top: 12px; display: grid; gap: 8px; }
 .order-access .btn-row { margin: 0; padding: 0; }
+.order-delete {
+  justify-self: start;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--red);
+  font-weight: 650;
+  font-size: 14px;
+}
 .edit-bar {
   display: flex;
   align-items: center;
