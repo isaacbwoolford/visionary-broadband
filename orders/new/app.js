@@ -133,7 +133,6 @@ function fresh() {
     step: 0,
     maxReached: 0,
     menu: false,
-    mapMode: "satellite",
     draft: { line: "", unit: "", zip: "", serviceType: "Residential" },
     service: null,
     lookupError: "",
@@ -181,7 +180,6 @@ function fresh() {
 }
 
 let state = fresh();
-let map;
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -565,7 +563,6 @@ function paint(options = {}) {
       }
     }
   }
-  if ((state.screen === "flow") && state.service && document.getElementById("map")) mountMap();
   document.title = state.screen === "result" && state.order
     ? `Order #${state.order.number} · Visionary Broadband`
     : "Visionary Broadband";
@@ -684,15 +681,7 @@ function selectField(label, bind, value, options, placeholder) {
   return `<label class="lbl">${esc(label)}<select class="field" data-bind="${bind}">${opts}</select></label>`;
 }
 
-function addressStep(showNav = true, showMap = true) {
-  const map = showMap && state.service ? `
-    <div class="map-wrap">
-      <div class="map-toggle">
-        <button data-action="map-mode" data-mode="map" class="${state.mapMode === "map" ? "is-on" : ""}">Map</button>
-        <button data-action="map-mode" data-mode="satellite" class="${state.mapMode === "satellite" ? "is-on" : ""}">Satellite</button>
-      </div>
-      <div id="map"></div>
-    </div>` : "";
+function addressStep(showNav = true) {
   return `
     <div class="pad address-grid">
       <div class="stack">
@@ -702,7 +691,6 @@ function addressStep(showNav = true, showMap = true) {
         ${state.lookupError ? `<p class="err">${esc(state.lookupError)}</p>` : ""}
         ${selectField("Service Type", "draft.serviceType", state.draft.serviceType, ["Residential", "Commercial", "Enterprise"])}
       </div>
-      ${map}
     </div>
     ${showNav ? `<div class="btn-row single"><button class="btn btn-gold btn-wide" data-action="next">Next →</button></div>` : ""}`;
 }
@@ -1154,7 +1142,7 @@ function customerDetails() {
   if (state.service) ensureBilling();
   return `
     <h2 class="band">Service Address</h2>
-    ${addressStep(false, false)}
+    ${addressStep(false)}
     ${state.service ? `<div class="pad">${serviceSummary(true)}</div>` : ""}
     ${productStep(false, false)}
     ${hasVoice() ? voiceStep(false) : ""}
@@ -1285,26 +1273,6 @@ function modals() {
   if (state.toast) bits.push(`<div class="toast">${esc(state.toast)}</div>`);
   return bits.join("");
 }
-
-function mountMap() {
-  const el = document.getElementById("map");
-  if (!el || !state.service || typeof L === "undefined") {
-    if (el) el.classList.add("map-fallback");
-    return;
-  }
-  if (map) { map.remove(); map = null; }
-  map = L.map(el, { zoomControl: true }).setView([state.service.lat, state.service.lng], 18);
-  map.zoomControl.setPosition("bottomright");
-  const url = state.mapMode === "satellite"
-    ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  L.tileLayer(url, { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
-  const icon = L.divIcon({ className: "pin-icon", html: '<span class="pin"></span>', iconSize: [18, 18], iconAnchor: [9, 16] });
-  L.marker([state.service.lat, state.service.lng], { icon }).addTo(map);
-  setTimeout(() => map.invalidateSize(), 60);
-}
-
-window.addEventListener("resize", () => { if (map) map.invalidateSize(); });
 
 function setBind(path, value) {
   const parts = path.split(".");
@@ -1751,11 +1719,6 @@ document.addEventListener("click", (event) => {
       el.classList.add("copied");
       setTimeout(() => el.classList.remove("copied"), 1000);
     }).catch(() => {});
-    return;
-  }
-  if (action === "map-mode") {
-    state.mapMode = el.dataset.mode;
-    paint({ keepScroll: true });
     return;
   }
   if (action === "override") { state.overrideOpen = true; paint({ keepScroll: true }); return; }

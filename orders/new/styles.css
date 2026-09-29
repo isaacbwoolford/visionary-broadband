@@ -275,46 +275,6 @@ select.field {
   font-size: 14px;
 }
 
-.map-wrap { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
-#map { height: 280px; background: #d7dde3; }
-.map-fallback {
-  height: 280px;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.05)),
-    repeating-linear-gradient(90deg, #c5d0c8 0 18px, #b7c6bc 18px 36px);
-  position: relative;
-}
-.map-fallback .pin { position: absolute; left: 50%; top: 46%; }
-.map-toggle {
-  position: absolute;
-  z-index: 500;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  background: #fff;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,.3);
-}
-.map-toggle button {
-  border: 0;
-  background: #fff;
-  padding: 8px 14px;
-  font-weight: 650;
-}
-.map-toggle button.is-on { background: #f3f4f6; }
-.pin {
-  width: 18px;
-  height: 18px;
-  background: #e11d48;
-  border: 2px solid #fff;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  box-shadow: 0 2px 4px rgba(0,0,0,.35);
-  display: block;
-}
-.pin-icon { background: none; border: 0; }
-
 .btn-row {
   display: flex;
   justify-content: space-between;
@@ -560,8 +520,6 @@ select.field {
 .order-card span { color: #6b7280; font-size: 14px; }
 .empty { padding: 24px 20px; color: #6b7280; }
 
-.leaflet-control-attribution { font-size: 10px; }
-
 .brand { display: flex; align-items: center; min-width: 0; }
 .desk-nav { display: none; }
 
@@ -655,15 +613,8 @@ select.field {
   }
   .summary-board .panel.wide { grid-column: 1 / -1; }
 
-  .address-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 1.05fr);
-    gap: 20px;
-    align-items: stretch;
-  }
-  .address-grid:not(:has(.map-wrap)) { grid-template-columns: 1fr; }
-  .address-grid:not(:has(.map-wrap)) .stack { grid-template-columns: 1fr 1fr; }
-  .address-grid .map-wrap, .address-grid #map { height: 100%; min-height: 420px; }
+  .address-grid { display: block; }
+  .address-grid .stack { grid-template-columns: 1fr 1fr; }
   .btn-row.single { display: flex; justify-content: flex-end; }
   .btn-row.single .btn-wide { width: auto; min-width: 220px; }
   .fields-2 { grid-template-columns: 1fr 1fr; }
