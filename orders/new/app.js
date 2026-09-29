@@ -337,7 +337,8 @@ function customerReady() {
 }
 
 function billingAddressReady() {
-  if (!state.billing.line.trim() || !state.billing.city.trim() || !state.billing.zip.trim()) return false;
+  const needsZip = !(state.screen === "customer" && state.payMethod === "ach");
+  if (!state.billing.line.trim() || !state.billing.city.trim() || (needsZip && !state.billing.zip.trim())) return false;
   if (!state.mailingSame && (!state.mailing.line.trim() || !state.mailing.city.trim() || !state.mailing.zip.trim())) return false;
   return true;
 }
@@ -496,7 +497,6 @@ async function encryptPayment() {
       achRouting: digits(state.achRouting),
       achAccount: digits(state.achAccount),
       achType: state.achType,
-      zip,
     };
   const plain = new TextEncoder().encode(JSON.stringify(secret));
   const publicKey = await importPaymentKey();
@@ -865,7 +865,6 @@ function paymentBlock(optional = false, includeZip = false) {
     ${field("Routing Number", "achRouting", state.achRouting, 'inputmode="numeric" maxlength="9"')}
     ${field("Account Number", "achAccount", state.achAccount, 'inputmode="numeric"')}
     ${selectField("Account Type", "achType", state.achType, ["Checking", "Savings"])}
-    ${zipField}
   `;
   return `
     <h2 class="band">Payment Method<span class="lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span></h2>
